@@ -1,0 +1,7 @@
+/*used to highlight differences, 
+ * you should wrap the new area in 
+ * <span class="new"> your stuff </span>
+ * */
+.new{
+	color:darkgreen
+}

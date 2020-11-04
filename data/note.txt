@@ -1,0 +1,15 @@
+Samples:
+
+- 41 milk, Grana
+- 4 milk, non Grana
+- 3 controls, veg fodder (maize, ...)
+- 1 broken sample
+
+Total: 49. plus one replicate (DNA extracted with both phenole and kiagen)
+
+Scientific questions:
+- yes/no grana
+- area of origin
+
+Open questions:
+- what about the BIG amount of unexplained DNA? what percentage is bovine?

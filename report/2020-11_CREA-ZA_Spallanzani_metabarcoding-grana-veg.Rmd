@@ -1,0 +1,98 @@
+---
+title: "Report Title"
+author: "Nelson Nazzicari"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    css: CREA.css
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, echo=FALSE, include=FALSE, message=FALSE}
+library(knitr)
+options(knitr.kable.NA = ' ', digits = 3) #this is for kable
+library(ggplot2)
+library(plyr)
+library(printr)
+library(DT)
+library(xfun)
+xfun::pkg_load2(c('base64enc', 'htmltools', 'mime'))
+```
+
+```{r cheatsheet, echo=FALSE, include=FALSE, eval=FALSE}
+# EVALUATE CODE?  eval=TRUE
+# PRINT CODE?     echo=TRUE
+# PRINT OUTPUT?   include=TRUE
+# UNWANTED STUFF? message=FALSE warning=FALSE error=FALSE
+
+#attach a file (e.g. an xls)
+xfun::embed_file('some_file.xls')
+
+#data table with fancy selectors and searches
+DT::datatable(cars)
+
+#more humble data table
+kable(cars, caption = "my cars")
+
+
+```
+
+```{r echo=FALSE, include=TRUE}
+#this is your standard R chunk
+```
+
+# Document history
+
+<!--
+To highlight changes use
+<span class="new"> your stuff </span>
+-->
+
+* 2020-11-04 - initial report
+
+# Aim
+
+Metabarcoding analysis on Grana Padano milk, focusing on vegetable presence.
+
+# Available samples
+
+```{r echo=FALSE, include=TRUE}
+samples = read.csv('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/Transcodifica Campioni_cleaned.csv', stringsAsFactors = FALSE, row.names = 1)
+samples = samples[,c("Id_Lab", "type", "caseificio", "MESE", "data_prelievo")]
+samples$province = sapply(samples$caseificio, FUN = substr, start=1, stop=2)
+samples[samples$province == '', 'province'] = '-'
+```
+
+## By type
+
+```{r echo=FALSE, include=TRUE}
+samples_summary = ddply(samples, .(type), function(x){
+  return(data.frame(
+    samples = nrow(x),
+    Id_Lab = paste(collapse = ', ', x$Id_Lab)
+  ))
+})
+
+kable(samples_summary)
+```
+
+where "broken" indicates a non viable sample, "ctrl" indicate pure vegetable samples (e.g. fodder), "grana" and "non-grana" indicates milk samples from inside and outside Grana Padano areas, respectively.
+
+## By province
+
+```{r echo=FALSE, include=TRUE}
+samples_summary = ddply(samples, .(province), function(x){
+  return(data.frame(
+    samples = nrow(x),
+    Id_Lab = paste(collapse = ', ', x$Id_Lab)
+  ))
+})
+
+kable(samples_summary)
+```
+
+## By extraction method
+
+TO BE DONE
