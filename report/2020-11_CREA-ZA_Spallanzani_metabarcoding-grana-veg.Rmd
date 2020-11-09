@@ -1,5 +1,5 @@
 ---
-title: "Report Title"
+title: "Newtech - Metagenomics on milk (Spallanzani + CREA-ZA)"
 author: "Nelson Nazzicari"
 date: "`r Sys.Date()`"
 output: 
@@ -79,11 +79,14 @@ samples_summary = ddply(samples, .(type), function(x){
 kable(samples_summary)
 ```
 
-where "broken" indicates a non viable sample, "ctrl" indicate pure vegetable samples (e.g. fodder), "grana" and "non-grana" indicates milk samples from inside and outside Grana Padano areas, respectively.
+where "broken" indicates a non viable sample which was then re-sent and sequenced, "ctrl" indicate pure vegetable samples (e.g. fodder), "grana" and "non-grana" indicates milk samples from inside and outside Grana Padano areas, respectively.
 
 ## By province
 
 ```{r echo=FALSE, include=TRUE}
+#from here on we don't need the broken samples anymore
+samples = subset(samples, type != 'broken')
+
 samples_summary = ddply(samples, .(province), function(x){
   return(data.frame(
     samples = nrow(x),
@@ -96,7 +99,7 @@ kable(samples_summary)
 
 ## By extraction method
 
-TO BE DONE
+Two extraction methods have been tested but at the end we will only work with phenol.
 
 # Fraction of Bovine genome
 
