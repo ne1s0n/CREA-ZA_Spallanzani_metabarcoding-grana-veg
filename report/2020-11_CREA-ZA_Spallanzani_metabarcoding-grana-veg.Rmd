@@ -51,6 +51,7 @@ To highlight changes use
 -->
 
 * 2020-11-04 - initial report
+* 2020-11-09 - added section on bovine genome
 
 # Aim
 
@@ -96,3 +97,66 @@ kable(samples_summary)
 ## By extraction method
 
 TO BE DONE
+
+# Fraction of Bovine genome
+
+After a mail exchange with Slobodanka Radovic I obtained the OTU table for the second delivery, containing the numerosities for 27 samples, plus the sequences for each of the 4811 centroids analyzed.
+
+A first analysis of the centroid cumulative numerosity led to the following plot:
+
+```{r echo=FALSE, include=TRUE}
+
+#read the OTU table
+OTU = read.csv('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/otu_table-2.csv', stringsAsFactors = FALSE, row.names = 1)
+OTU$taxonomy = NULL
+
+#getting the top 30 of most present centroids
+centroids_cnt = rowSums(OTU)
+OTU = OTU[order(centroids_cnt, decreasing = TRUE),]
+
+#cumulative plot
+centroids_cum = centroids_cnt
+for (i in 1:length(centroids_cnt)){
+  centroids_cum[i] = sum(centroids_cnt[1:i])
+}
+centroids_cum = centroids_cum / sum(centroids_cnt)
+
+plot(centroids_cum, xlab = 'Centroids, sorted by numerosity', ylab = 'Cumulative reads, relative')
+```
+
+For reference, the 10 most numerous centroids account for the `r centroids_cum[10] * 100` % of all the reads.
+
+To investigate what fraction of the available reads have bovine origin I've blasted the centroid sequences on the 
+*Bos Taurus* genome via the [NCBI website](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastSearch&PROG_DEF=blastn&BLAST_PROG_DEF=megaBlast&BLAST_SPEC=OGP__9913__10708).
+
+```{r echo=FALSE, include=TRUE}
+al = rbind(
+  read.csv('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/centroids/lines1-5000_Alignment-HitTable.csv', stringsAsFactors = FALSE, header = FALSE),
+  read.csv('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/centroids/lines5001-end_Alignment-HitTable.csv', stringsAsFactors = FALSE, header = FALSE)
+)
+
+#giving column names, for what we are interested in
+colnames(al) = c('id1', 'id2', 'perc_id', 'match_length', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10', 'e_value', 'bit_score')
+
+#removing duplicates
+al = ddply(al, .(id1), function(x){
+  i = which.min(x$e_value)
+  return(x[i,])
+})
+
+#filtering
+al = subset(al, perc_id>0.95 & e_value < 0.00001 )
+
+#how many of the reads are bovine
+bovine_reads = sum(centroids_cnt[al$id1])
+
+```
+The sequencing results are filtered with the following criteria:
+
+* percent identity > 0.95
+* e-value < 1e-5
+* in case of multiple alignments I keep the one with smallest e_value
+
+After the filtering `r nrow(al)` centroids align on the bovine genome, representing the `r 100*nrow(al)/length(centroids_cnt)` % of the total `r length(centroids_cnt)` centroids. In terms of reads, the `r 100*bovine_reads/sum(centroids_cnt)` % of reads are bovine.
+
+**OPEN QUESTION**: how consistent is this with the received results? I can get easily percentages sensibly higher there (85-90% of unassigned).
