@@ -71,12 +71,14 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum'){
 
 load_sample_codes = function(){
   samples = read.csv('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/Transcodifica Campioni_cleaned.csv', stringsAsFactors = FALSE, row.names = 1)
-  samples = samples[,c("Id_Lab", "type", "caseificio", "MESE", "data_prelievo")]
+  samples = samples[,c("Id_Lab", "Label_IGA", "type", "caseificio", "MESE", "data_prelievo")]
   samples$province = sapply(samples$caseificio, FUN = substr, start=1, stop=2)
   samples[samples$province == '', 'province'] = '-'
-  
+  samples$Label_IGA = gsub(samples$Label_IGA, pattern = '_', replacement = '-')
+  rownames(samples) = samples$Label_IGA
   return(samples)
 }
+
 infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20200706/'
 delivery_20200706 = load_all_OTU_files(infolder)
 infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20201009/'
@@ -89,9 +91,12 @@ OTU = build_OTU_table(tot, 'order')
 OTU = build_OTU_table(tot, 'family') 
 OTU = build_OTU_table(tot, 'genus') 
 OTU = build_OTU_table(tot, 'species') 
-
-
 # 'reads', 'domain', 'clade_phylum', 'class', 
 # 'order', 'family', 'subfamily', 'tribe', 
 # 'subtribe', 'genus', 'species')
 
+codes = load_sample_codes()
+assertthat::assert_that(all(rownames(OTU) %in% codes$Label_IGA))
+
+#joining OTU and codes
+bbb = merge(codes, OTU, by = 'row.names')
