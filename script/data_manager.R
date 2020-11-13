@@ -49,7 +49,7 @@ stats_table = function(raw_OTUs_list){
   return(res)
 }
 
-build_OTU_table = function(raw_OTU_list, level='clade_phylum'){
+build_OTU_table = function(raw_OTU_list, level='clade_phylum', add_metadata = TRUE){
   res = data.frame(row.names = names(raw_OTU_list))
   
   for(sample in names(raw_OTU_list)){
@@ -66,6 +66,14 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum'){
     }
   }
   
+  #should we add metadata
+  if (add_metadata){
+    codes = load_sample_codes()
+    
+    #joining OTU and codes
+    res = merge(codes, res, by = 'row.names')
+  }
+  
   return(res)
 }
 
@@ -79,24 +87,4 @@ load_sample_codes = function(){
   return(samples)
 }
 
-infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20200706/'
-delivery_20200706 = load_all_OTU_files(infolder)
-infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20201009/'
-delivery_20201009 = load_all_OTU_files(infolder)
-tot = c(delivery_20200706, delivery_20201009)
 
-OTU = build_OTU_table(tot, 'clade_phylum') 
-OTU = build_OTU_table(tot, 'class') 
-OTU = build_OTU_table(tot, 'order') 
-OTU = build_OTU_table(tot, 'family') 
-OTU = build_OTU_table(tot, 'genus') 
-OTU = build_OTU_table(tot, 'species') 
-# 'reads', 'domain', 'clade_phylum', 'class', 
-# 'order', 'family', 'subfamily', 'tribe', 
-# 'subtribe', 'genus', 'species')
-
-codes = load_sample_codes()
-assertthat::assert_that(all(rownames(OTU) %in% codes$Label_IGA))
-
-#joining OTU and codes
-bbb = merge(codes, OTU, by = 'row.names')
