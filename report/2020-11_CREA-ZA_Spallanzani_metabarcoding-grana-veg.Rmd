@@ -19,6 +19,22 @@ library(printr)
 library(DT)
 library(xfun)
 xfun::pkg_load2(c('base64enc', 'htmltools', 'mime'))
+
+source('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/script/data_manager.R')
+infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20200706/'
+delivery_20200706 = load_all_OTU_files(infolder)
+infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20201009/'
+delivery_20201009 = load_all_OTU_files(infolder)
+raw_OTUs = c(delivery_20200706, delivery_20201009)
+
+#example calls
+# OTU = build_OTU_table(raw_OTUs, 'clade_phylum') 
+# OTU = build_OTU_table(raw_OTUs, 'class') 
+# OTU = build_OTU_table(raw_OTUs, 'order') 
+# OTU = build_OTU_table(raw_OTUs, 'family') 
+# OTU = build_OTU_table(raw_OTUs, 'genus') 
+# OTU = build_OTU_table(raw_OTUs, 'species') 
+
 ```
 
 ```{r cheatsheet, echo=FALSE, include=FALSE, eval=FALSE}
@@ -107,7 +123,7 @@ After a mail exchange with Slobodanka Radovic I obtained the OTU table for the s
 
 A first analysis of the centroid cumulative numerosity led to the following plot:
 
-```{r echo=FALSE, include=TRUE}
+```{r echo=FALSE, include=FALSE, eval=TRUE}
 
 #read the OTU table
 OTU = read.csv('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/otu_table-2.csv', stringsAsFactors = FALSE, row.names = 1)
@@ -132,7 +148,7 @@ For reference, the 10 most numerous centroids account for the `r centroids_cum[1
 To investigate what fraction of the available reads have bovine origin I've blasted the centroid sequences on the 
 *Bos Taurus* genome via the [NCBI website](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastSearch&PROG_DEF=blastn&BLAST_PROG_DEF=megaBlast&BLAST_SPEC=OGP__9913__10708).
 
-```{r echo=FALSE, include=TRUE}
+```{r echo=FALSE, include=FALSE, eval=TRUE}
 al = rbind(
   read.csv('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/centroids/lines1-5000_Alignment-HitTable.csv', stringsAsFactors = FALSE, header = FALSE),
   read.csv('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/centroids/lines5001-end_Alignment-HitTable.csv', stringsAsFactors = FALSE, header = FALSE)
@@ -163,3 +179,10 @@ The sequencing results are filtered with the following criteria:
 After the filtering `r nrow(al)` centroids align on the bovine genome, representing the `r 100*nrow(al)/length(centroids_cnt)` % of the total `r length(centroids_cnt)` centroids. In terms of reads, the `r 100*bovine_reads/sum(centroids_cnt)` % of reads are bovine.
 
 **OPEN QUESTION**: how consistent is this with the received results? I can get easily percentages sensibly higher there (85-90% of unassigned).
+
+# Control samples
+
+```{r echo=FALSE, include=TRUE}
+OTU_ctrl = build_OTU_table(raw_OTUs, 'domain') 
+OTU_ctrl = subset(OTU_ctrl, type == 'ctrl')
+```
