@@ -14,6 +14,11 @@ load_one_OTU_file = function(infile){
     #adding back to the unassigned bin
     df[df$domain == 'Unassigned', 'reads'] = df[df$domain == 'Unassigned', 'reads'] + sum(aur$reads)
   }
+  
+  #Unassigned, NA and similar all need to be glued in a conventional empty symbol
+  df[is.na(df)] = 'UN'
+  df[df == 'Unassigned'] = 'UN'
+  
   return(df)
 }
 
@@ -49,9 +54,10 @@ stats_table = function(raw_OTUs_list){
   return(res)
 }
 
-build_OTU_table = function(raw_OTU_list, level='clade_phylum', add_metadata = TRUE){
-  res = data.frame(row.names = names(raw_OTU_list))
+build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_reads = 5){
+  OTU = data.frame(row.names = names(raw_OTU_list))
   
+  #---OTU table, absolute values
   for(sample in names(raw_OTU_list)){
     #compacting for the required level
     curr = raw_OTU_list[[sample]]
@@ -60,21 +66,45 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum', add_metadata = TR
       return(data.frame(reads = sum(x$reads)))
     })
     
+    #if the required level does not pass the filter on reads it gets binned
+    #to unassigned
+    if(any(curr$reads < min_reads)){
+      UN_sel = curr$domain == 'UN'
+      bad_sel = curr$reads < min_reads
+      curr[UN_sel, 'reads'] = curr[UN_sel, 'reads'] + curr[bad_sel, 'reads']
+      curr = curr[!bad_sel,]
+    }
+    curr = subset(curr, reads >= min_reads)
+    
+    
     #adding the results
-    for (i in nrow(curr)){
-      res[sample, curr[i, level]] = curr[i, 'reads']
+    for (i in 1:nrow(curr)){
+      OTU[sample, curr[i, level]] = curr[i, 'reads']
     }
   }
   
-  #should we add metadata
-  if (add_metadata){
-    codes = load_sample_codes()
-    
-    #joining OTU and codes
-    res = merge(codes, res, by = 'row.names')
+  #---relative OTUs count
+  #tot reads per sample
+  rps = rowSums(OTU, na.rm = TRUE)
+  
+  OTU_rel = OTU
+  for (i in 1:nrow(OTU)){
+    OTU_rel [i,] = OTU [i,] / rps[i]
   }
   
-  return(res)
+  #---relative OTUs count, but for screen printing
+  OTU_rel_screen = round(OTU_rel * 100, digits = 3)
+  
+  #---metadata
+  meta = load_sample_codes()
+  meta = meta[rownames(OTU),]
+  
+  return(list(
+    OTU = OTU,
+    OTU_rel = OTU_rel,
+    OTU_rel_screen = OTU_rel_screen,
+    meta = meta
+  ))
 }
 
 load_sample_codes = function(){
@@ -85,6 +115,23 @@ load_sample_codes = function(){
   samples$Label_IGA = gsub(samples$Label_IGA, pattern = '_', replacement = '-')
   rownames(samples) = samples$Label_IGA
   return(samples)
+}
+
+filter_OTU = function(OTU, sample_selector){
+  #filtering out the unwanted stuff
+  OTU$meta    = OTU$meta[sample_selector,]
+  OTU$OTU     = OTU$OTU[sample_selector,]
+  OTU$OTU_rel = OTU$OTU_rel[sample_selector,]
+  OTU$OTU_rel_screen = OTU$OTU_rel_screen[sample_selector,]
+  
+  #removing empty cols
+  empty_col = colSums(is.na(OTU$OTU)) == nrow(OTU$OTU)
+  OTU$OTU     = OTU$OTU[,!empty_col, drop=FALSE]
+  OTU$OTU_rel = OTU$OTU_rel[,!empty_col, drop=FALSE]
+  OTU$OTU_rel_screen = OTU$OTU_rel_screen[,!empty_col, drop=FALSE]
+  
+  #done
+  return(OTU)
 }
 
 
