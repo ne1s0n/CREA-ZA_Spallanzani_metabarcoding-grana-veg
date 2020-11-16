@@ -174,10 +174,10 @@ So far I've done a high level analysis of centroids, but it would be better to o
 
 # Filtering and conventions
 
-This filtering strategy is taken straighforward from the [published paper on metabarcoding in grana padano](https://www.sciencedirect.com/science/article/pii/S0740002020302021?casa_token=pwjIEIBIUI0AAAAA:UAhVfUNTpp9OOG_iTAWkdc9GKUiy4cd1Ho2On19p80QX8MZHb-MCbDbnFn3a66D3DTn8XqerzTk). We may want to review these values at a later time.
+This filtering strategy is taken straighforward from the [published paper on metabarcoding in grana padano](https://www.sciencedirect.com/science/article/pii/S0740002020302021?casa_token=pwjIEIBIUI0AAAAA:UAhVfUNTpp9OOG_iTAWkdc9GKUiy4cd1Ho2On19p80QX8MZHb-MCbDbnFn3a66D3DTn8XqerzTk). We may want to review these values at a later time. The current plan is:
 
 * entries having less than 5 reads are removed and binned to unassigned (UN)
-* entries (species?) representing 1% of the reads of a sample will be considered "subdominant" and will be considered less important in the analysis
+* entries (species?) representing 1% of the reads of a sample will be labeled "subdominant" and will be considered less important in the analysis
 
 The taxonomic hierarchy we used is:
 
@@ -193,7 +193,7 @@ The taxonomic hierarchy we used is:
 * genus
 * species
 
-Where some levels (e.g. clade, subtribe) are often absent.
+with some levels (e.g. clade, subtribe) are often absent.
 
 # Control samples
 
