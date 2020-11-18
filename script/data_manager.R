@@ -1,3 +1,5 @@
+library(ggplot2)
+library(reshape2)
 library(plyr)
 load_one_OTU_file = function(infile){
   cnames = c(
@@ -38,22 +40,6 @@ load_all_OTU_files = function(infolder){
   return(res)
 }
 
-stats_table = function(raw_OTUs_list){
-  res = NULL
-  for (sample in names(raw_OTUs_list))
-    res = rbind(res, data.frame(
-      sample = sample,
-      reads = sum(raw_OTUs_list[[sample]]$reads),
-      unassigned = subset(raw_OTUs_list[[sample]], domain == 'Unassigned')$reads,
-      alpha = nrow(raw_OTUs_list[[sample]]) - 1
-    ))
-  
-  warning('add info on region/province/type here')
-  
-  res$unassigned_ratio = res$unassigned / res$reads
-  return(res)
-}
-
 build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_reads = 5){
   OTU = data.frame(row.names = names(raw_OTU_list))
   
@@ -76,7 +62,6 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_reads = 5){
     }
     curr = subset(curr, reads >= min_reads)
     
-    
     #adding the results
     for (i in 1:nrow(curr)){
       OTU[sample, curr[i, level]] = curr[i, 'reads']
@@ -95,6 +80,20 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_reads = 5){
   #---relative OTUs count, but for screen printing
   OTU_rel_screen = round(OTU_rel * 100, digits = 3)
   
+  #---relative OTUs count, ignoring unassigned
+  OTU_noUN = OTU
+  OTU_noUN$UN = NULL  
+  #tot reads per sample
+  rps_noUN = rowSums(OTU_noUN, na.rm = TRUE)
+  
+  OTU_rel_noUN = OTU_noUN
+  for (i in 1:nrow(OTU_noUN)){
+    OTU_rel_noUN [i,] = OTU_noUN [i,] / rps_noUN[i]
+  }
+  
+  #---relative OTUs count, but for screen printing
+  OTU_rel_screen_noUN = round(OTU_rel_noUN * 100, digits = 3)
+  
   #---metadata
   meta = load_sample_codes()
   meta = meta[rownames(OTU),]
@@ -103,7 +102,10 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_reads = 5){
     OTU = OTU,
     OTU_rel = OTU_rel,
     OTU_rel_screen = OTU_rel_screen,
-    meta = meta
+    meta = meta,
+    OTU_noUN = OTU_noUN,
+    OTU_rel_noUN = OTU_rel_noUN,
+    OTU_rel_screen_noUN = OTU_rel_screen_noUN
   ))
 }
 
@@ -123,15 +125,65 @@ filter_OTU = function(OTU, sample_selector){
   OTU$OTU     = OTU$OTU[sample_selector,]
   OTU$OTU_rel = OTU$OTU_rel[sample_selector,]
   OTU$OTU_rel_screen = OTU$OTU_rel_screen[sample_selector,]
+  OTU$OTU_noUN     = OTU$OTU_noUN[sample_selector,]
+  OTU$OTU_rel_noUN = OTU$OTU_rel_noUN[sample_selector,]
+  OTU$OTU_rel_screen_noUN = OTU$OTU_rel_screen_noUN[sample_selector,]
   
   #removing empty cols
   empty_col = colSums(is.na(OTU$OTU)) == nrow(OTU$OTU)
   OTU$OTU     = OTU$OTU[,!empty_col, drop=FALSE]
   OTU$OTU_rel = OTU$OTU_rel[,!empty_col, drop=FALSE]
   OTU$OTU_rel_screen = OTU$OTU_rel_screen[,!empty_col, drop=FALSE]
+  empty_col = colSums(is.na(OTU$OTU_noUN)) == nrow(OTU$OTU_noUN)
+  OTU$OTU_noUN     = OTU$OTU_noUN[,!empty_col, drop=FALSE]
+  OTU$OTU_rel_noUN = OTU$OTU_rel_noUN[,!empty_col, drop=FALSE]
+  OTU$OTU_rel_screen_noUN = OTU$OTU_rel_screen_noUN[,!empty_col, drop=FALSE]
   
   #done
   return(OTU)
 }
 
+prepare_heatmap = function(mat, min_abundance = 0.01){
+  #removing unassigned, if present
+  mat$UN = NULL
+  
+  #NA goes to zero
+  mat[is.na(mat)] = 0
+  
+  #removing organisms out of thresholds
+  bad = apply(mat, 2, max) < min_abundance
+  mat = mat[, !bad, drop=FALSE]
+  
+  #sorting by numerosity
+  freqsum = colSums(mat)
+  mat = mat[, order(freqsum, decreasing = TRUE), drop = FALSE]
+  organism_order = colnames(mat)
+  
+  #building a long format, for plotting
+  mat_long = melt(data.frame(mat, sample = rownames(mat)), id.vars = 'sample')
+  levels(mat_long$variable) = organism_order
+  
+  #building a ggplot tile
+  gg = ggplot(data=mat_long, aes(y=sample, x=variable, fill=value)) + 
+    geom_tile(colour = "gray") +
+    scale_fill_gradient(low = "white",high = "blue") +
+    scale_x_discrete(expand = c(0, 0)) +
+    scale_y_discrete(expand = c(0, 0)) + 
+    #coord_fixed(ratio=1) + 
+    theme(
+      legend.position = 'bottom',
+      axis.ticks = element_blank(),
+      axis.text.x = element_text(angle = 90, hjust = 1, size=9, face = "italic"),
+      axis.text.y = element_text(hjust = 1, size=11, vjust = 0.5),
+      axis.title = element_blank()
+    )
+  
+  #returning everything
+  return(list(
+    data = mat,
+    data_long = mat_long,
+    gg = gg
+  ))
+  
+}
 

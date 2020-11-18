@@ -59,6 +59,7 @@ To highlight changes use
 * 2020-11-04 - initial report
 * 2020-11-09 - added section on bovine genome
 * 2020-11-16 - added section on filtering, control samples, a first pass for milk samples
+* 2020-11-16 - answer to open question 3
 
 # Aim
 
@@ -297,13 +298,35 @@ A few notes:
     * sample ID1701-14 is the second-lowest in terms of reads, with 37k. The next would be sample ID1701-18, with 70k -  almost two times that amount
     * number of reads grows progressively, up until sample ID1701-25, which has 1.4M reads, almost four times the second most numerous sample (ID1557-21, with 400k reads)
 
-## OPEN QUESTION 3: are these reads levels ok?
+## [CLOSED] OPEN QUESTION 3: are these reads levels ok?
 
 I think I need to check with Slobodanka again, at least to confirm that this is expected.
 
-## Milk, family (order)
+**ANSWER**: it appears that the reads levels are acceptable, she suggests subsampling/oversampling reads if we need to normalize the samples (we don't, we'll use frequencies).
 
-```{r echo=FALSE, include=TRUE}
+
+# Milk, heatmaps
+
+Several heatmaps for dominant (>1%) centroids, at various taxonomic levels.
+
+## Clade/Phylum
+```{r, fig.height = 8, fig.width = 8, fig.align = "center", echo=FALSE, include=TRUE}
+level = 'clade_phylum'
+OTU_milk = build_OTU_table(raw_OTUs, level) 
+
+#subset to non-control
+sel = OTU_milk$meta$type != 'ctrl'
+OTU_milk = filter_OTU(OTU_milk, sel)
+
+#do heatmap
+h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance=0)
+
+#show the map
+print(h$gg)
+```
+
+## Family
+```{r, fig.height = 8, fig.width = 8, fig.align = "center", echo=FALSE, include=TRUE}
 level = 'family'
 OTU_milk = build_OTU_table(raw_OTUs, level) 
 
@@ -311,18 +334,10 @@ OTU_milk = build_OTU_table(raw_OTUs, level)
 sel = OTU_milk$meta$type != 'ctrl'
 OTU_milk = filter_OTU(OTU_milk, sel)
 
-# #building a single table, showable
-# OTU_milk$merged = merge(x=OTU_milk$meta,   y=OTU_milk$OTU_rel_screen, by.x='Label_IGA', by.y='row.names', all = TRUE)
-# OTU_milk$merged = merge(x=OTU_milk$merged, y=OTU_milk$OTU,            by.x='Label_IGA', by.y='row.names', all = TRUE)
-# OTU_milk$merged$reads = rowSums(OTU_milk$merged[, 10:11], na.rm = TRUE)
-# OTU_milk$merged = OTU_milk$merged[,-10:-11]
-# 
-# #renaming cols, for clarity
-# colnames(OTU_milk$merged) = c('Label_IGA', 'Id_Lab', 'type', 'caseificio', 'MESE', 'data_prelievo', 'province', 'Eukaryota (%)', 'UN (%)', 'reads')
-# 
-# #sorting by interesting col
-# OTU_milk$merged = OTU_milk$merged[order(OTU_milk$merged[,9], decreasing = TRUE),]
+#do heatmap
+h = prepare_heatmap(OTU_milk$OTU_rel)
 
-DT::datatable(OTU_milk$OTU_rel_screen, rownames = TRUE, options = list(
-  pageLength = 100))
+#show the map
+print(h$gg)
 ```
+
