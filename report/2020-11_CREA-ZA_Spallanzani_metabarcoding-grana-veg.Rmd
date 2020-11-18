@@ -58,7 +58,7 @@ To highlight changes use
 
 * 2020-11-04 - initial report
 * 2020-11-09 - added section on bovine genome
-* 2020-11-16 - added section on filtering, control samples
+* 2020-11-16 - added section on filtering, control samples, a first pass for milk samples
 
 # Aim
 
@@ -193,7 +193,7 @@ The taxonomic hierarchy we used is:
 * genus
 * species
 
-with some levels (e.g. clade, subtribe) are often absent.
+with some levels (e.g. clade, subtribe) often absent.
 
 # Control samples
 
@@ -253,3 +253,76 @@ This is to show that we may need to operate at a level different from **species*
 
 ## OPEN QUESTION 2: what taxonomic level?
 How to decide what taxonomic level to use? I've read a few metabarcoding papers that use phylum/family. Would it be ok? Further data exploration will probably give us more hints.
+
+# Milk samples - reads and vegetable portion
+
+The first step is to take a look to **domain** level for milk samples. In this table I report all the metadata (province, date and so forth). I then have three data columns:
+
+* Eukaryota (%): fraction of reads, for each sample, classified as Eukaryota
+* UN (%): as above, but for unassigned reads
+* Reads: absolute number of reads for that sample
+
+Here's the table, sorted by decreasing number of unassigned:
+
+```{r echo=FALSE, include=TRUE}
+level = 'domain'
+OTU_milk = build_OTU_table(raw_OTUs, level) 
+
+#subset to non-control
+sel = OTU_milk$meta$type != 'ctrl'
+OTU_milk = filter_OTU(OTU_milk, sel)
+
+#building a single table, showable
+OTU_milk$merged = merge(x=OTU_milk$meta,   y=OTU_milk$OTU_rel_screen, by.x='Label_IGA', by.y='row.names', all = TRUE)
+OTU_milk$merged = merge(x=OTU_milk$merged, y=OTU_milk$OTU,            by.x='Label_IGA', by.y='row.names', all = TRUE)
+OTU_milk$merged$reads = rowSums(OTU_milk$merged[, 10:11], na.rm = TRUE)
+OTU_milk$merged = OTU_milk$merged[,-10:-11]
+
+#renaming cols, for clarity
+colnames(OTU_milk$merged) = c('Label_IGA', 'Id_Lab', 'type', 'caseificio', 'MESE', 'data_prelievo', 'province', 'Eukaryota (%)', 'UN (%)', 'reads')
+
+#sorting by interesting col
+OTU_milk$merged = OTU_milk$merged[order(OTU_milk$merged[,9], decreasing = TRUE),]
+
+DT::datatable(OTU_milk$merged, rownames = FALSE, options = list(
+  pageLength = 100))
+```
+
+A few notes:
+
+* sample ID1701-1 is 100% unassigned. Also, it has a very low number of reads. I would consider this a failed sample?
+* for the other samples: assigned fractions go from just above 1% (sample ID1701-10) to 36.6% (sample ID1701-14)
+* of the four non-grana, three (montagna, puglia, Na) have relatively high assignments (in the 8-10% range) and only one (sicilia) is in the low range (1.8%)
+* looking at the distribution of reads, apart from the already cited low-reads sample, there are a few extremes (this is better appreciated sorting the table by number of reads):
+    * sample ID1701-14 is the second-lowest in terms of reads, with 37k. The next would be sample ID1701-18, with 70k -  almost two times that amount
+    * number of reads grows progressively, up until sample ID1701-25, which has 1.4M reads, almost four times the second most numerous sample (ID1557-21, with 400k reads)
+
+## OPEN QUESTION 3: are these reads levels ok?
+
+I think I need to check with Slobodanka again, at least to confirm that this is expected.
+
+## Milk, family (order)
+
+```{r echo=FALSE, include=TRUE}
+level = 'family'
+OTU_milk = build_OTU_table(raw_OTUs, level) 
+
+#subset to non-control
+sel = OTU_milk$meta$type != 'ctrl'
+OTU_milk = filter_OTU(OTU_milk, sel)
+
+# #building a single table, showable
+# OTU_milk$merged = merge(x=OTU_milk$meta,   y=OTU_milk$OTU_rel_screen, by.x='Label_IGA', by.y='row.names', all = TRUE)
+# OTU_milk$merged = merge(x=OTU_milk$merged, y=OTU_milk$OTU,            by.x='Label_IGA', by.y='row.names', all = TRUE)
+# OTU_milk$merged$reads = rowSums(OTU_milk$merged[, 10:11], na.rm = TRUE)
+# OTU_milk$merged = OTU_milk$merged[,-10:-11]
+# 
+# #renaming cols, for clarity
+# colnames(OTU_milk$merged) = c('Label_IGA', 'Id_Lab', 'type', 'caseificio', 'MESE', 'data_prelievo', 'province', 'Eukaryota (%)', 'UN (%)', 'reads')
+# 
+# #sorting by interesting col
+# OTU_milk$merged = OTU_milk$merged[order(OTU_milk$merged[,9], decreasing = TRUE),]
+
+DT::datatable(OTU_milk$OTU_rel_screen, rownames = TRUE, options = list(
+  pageLength = 100))
+```
