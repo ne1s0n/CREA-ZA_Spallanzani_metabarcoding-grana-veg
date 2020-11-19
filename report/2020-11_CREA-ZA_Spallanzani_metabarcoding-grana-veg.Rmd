@@ -60,6 +60,7 @@ To highlight changes use
 * 2020-11-09 - added section on bovine genome
 * 2020-11-16 - added section on filtering, control samples, a first pass for milk samples
 * 2020-11-16 - answer to open question 3
+* 2020-11-17 - added heatmaps for frequencies at various taxonomic levels
 
 # Aim
 
@@ -121,7 +122,7 @@ A first analysis of the centroid cumulative numerosity led to the following plot
 OTU = read.csv('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/otu_table-2.csv', stringsAsFactors = FALSE, row.names = 1)
 OTU$taxonomy = NULL
 
-#getting the top 30 of most present centroids
+#getting the most present centroids
 centroids_cnt = rowSums(OTU)
 OTU = OTU[order(centroids_cnt, decreasing = TRUE),]
 
@@ -208,6 +209,9 @@ OTU_ctrl = build_OTU_table(raw_OTUs, level)
 sel = OTU_ctrl$meta$type == 'ctrl'
 OTU_ctrl = filter_OTU(OTU_ctrl, sel)
 
+#removing clumsy code column
+OTU_ctrl$meta$code = NULL
+
 kable(OTU_ctrl$meta, row.names = FALSE)
 ```
 
@@ -259,8 +263,8 @@ How to decide what taxonomic level to use? I've read a few metabarcoding papers 
 
 The first step is to take a look to **domain** level for milk samples. In this table I report all the metadata (province, date and so forth). I then have three data columns:
 
-* Eukaryota (%): fraction of reads, for each sample, classified as Eukaryota
-* UN (%): as above, but for unassigned reads
+* Eukaryota: percentage of reads, for each sample, classified as Eukaryota
+* UN : as above, but for unassigned reads
 * Reads: absolute number of reads for that sample
 
 Here's the table, sorted by decreasing number of unassigned:
@@ -274,16 +278,12 @@ sel = OTU_milk$meta$type != 'ctrl'
 OTU_milk = filter_OTU(OTU_milk, sel)
 
 #building a single table, showable
-OTU_milk$merged = merge(x=OTU_milk$meta,   y=OTU_milk$OTU_rel_screen, by.x='Label_IGA', by.y='row.names', all = TRUE)
-OTU_milk$merged = merge(x=OTU_milk$merged, y=OTU_milk$OTU,            by.x='Label_IGA', by.y='row.names', all = TRUE)
-OTU_milk$merged$reads = rowSums(OTU_milk$merged[, 10:11], na.rm = TRUE)
-OTU_milk$merged = OTU_milk$merged[,-10:-11]
-
-#renaming cols, for clarity
-colnames(OTU_milk$merged) = c('Label_IGA', 'Id_Lab', 'type', 'caseificio', 'MESE', 'data_prelievo', 'province', 'Eukaryota (%)', 'UN (%)', 'reads')
+OTU_milk$merged = cbind(OTU_milk$meta, OTU_milk$OTU_rel_screen)
+OTU_milk$merged$code = NULL
+OTU_milk$merged$reads = rowSums(OTU_milk$OTU, na.rm = TRUE)
 
 #sorting by interesting col
-OTU_milk$merged = OTU_milk$merged[order(OTU_milk$merged[,9], decreasing = TRUE),]
+OTU_milk$merged = OTU_milk$merged[order(OTU_milk$merged$UN, decreasing = TRUE),]
 
 DT::datatable(OTU_milk$merged, rownames = FALSE, options = list(
   pageLength = 100))
@@ -292,6 +292,7 @@ DT::datatable(OTU_milk$merged, rownames = FALSE, options = list(
 A few notes:
 
 * sample ID1701-1 is 100% unassigned. Also, it has a very low number of reads. I would consider this a failed sample?
+    * **YES**
 * for the other samples: assigned fractions go from just above 1% (sample ID1701-10) to 36.6% (sample ID1701-14)
 * of the four non-grana, three (montagna, puglia, Na) have relatively high assignments (in the 8-10% range) and only one (sicilia) is in the low range (1.8%)
 * looking at the distribution of reads, apart from the already cited low-reads sample, there are a few extremes (this is better appreciated sorting the table by number of reads):
@@ -307,10 +308,19 @@ I think I need to check with Slobodanka again, at least to confirm that this is 
 
 # Milk, heatmaps
 
+
+```{r echo=FALSE, include=TRUE}
+#declaring the breaks and labels for counting UN fraction at each taxonomic level
+UN_breaks = c(0, 0.25, 0.50, 0.75, 0.8, 0.85, 0.9, 0.95, 1)
+UN_labels = c('<25%', '25%-50%', '50%-75%', '75%-80%', '80%-85%', '85%-90%', '90%-95%', '>95%')
+```
+
+
 Several heatmaps for dominant (>1%) centroids, at various taxonomic levels.
 
+
 ## Clade/Phylum
-```{r, fig.height = 8, fig.width = 8, fig.align = "center", echo=FALSE, include=TRUE}
+```{r, fig.height = 8, fig.align = "center", echo=FALSE, include=TRUE}
 level = 'clade_phylum'
 OTU_milk = build_OTU_table(raw_OTUs, level) 
 
@@ -319,25 +329,107 @@ sel = OTU_milk$meta$type != 'ctrl'
 OTU_milk = filter_OTU(OTU_milk, sel)
 
 #do heatmap
-h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance=0)
+h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance=0.01)
 
 #show the map
 print(h$gg)
 ```
 
+At Phylum level 100% of the reads are Streptophyta, with the single exception of sample ID1707-1, which is 100% unclassified. This sample will be removed from next analyses.
+
+Taking a look at the distribution of UN fractions:
+
+```{r echo=FALSE, include=TRUE}
+#counting UN fractions
+df = data.frame(
+  UN_fraction = UN_labels,
+  samples = hist(OTU_milk$OTU_rel$UN, plot=FALSE, breaks = UN_breaks)$counts
+)
+  
+#showing the table
+kable(df)
+```
+
+
 ## Family
-```{r, fig.height = 8, fig.width = 8, fig.align = "center", echo=FALSE, include=TRUE}
+```{r, fig.height = 8, fig.align = "center", echo=FALSE, include=TRUE}
 level = 'family'
 OTU_milk = build_OTU_table(raw_OTUs, level) 
 
-#subset to non-control
-sel = OTU_milk$meta$type != 'ctrl'
+#subset to non-control and remove bad sample
+sel = OTU_milk$meta$type != 'ctrl' | OTU_milk$meta$Label_IGA != 'ID1701-1'
 OTU_milk = filter_OTU(OTU_milk, sel)
 
 #do heatmap
-h = prepare_heatmap(OTU_milk$OTU_rel)
+h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance = 0.01)
 
 #show the map
 print(h$gg)
+
+
+#counting UN fractions
+df = data.frame(
+  UN_fraction = UN_labels,
+  samples = hist(OTU_milk$OTU_rel$UN, plot=FALSE, breaks = UN_breaks)$counts
+)
+  
+#showing the table
+kable(df)
 ```
+
+## Genus
+```{r, fig.height = 8, fig.align = "center", echo=FALSE, include=TRUE}
+level = 'genus'
+OTU_milk = build_OTU_table(raw_OTUs, level) 
+
+#subset to non-control and remove bad sample
+sel = OTU_milk$meta$type != 'ctrl' | OTU_milk$meta$Label_IGA != 'ID1701-1'
+OTU_milk = filter_OTU(OTU_milk, sel)
+
+#do heatmap
+h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance = 0.01)
+
+#show the map
+print(h$gg)
+
+
+#counting UN fractions
+df = data.frame(
+  UN_fraction = UN_labels,
+  samples = hist(OTU_milk$OTU_rel$UN, plot=FALSE, breaks = UN_breaks)$counts
+)
+  
+#showing the table
+kable(df)
+```
+
+
+## Species
+```{r, fig.height = 8, fig.align = "center", echo=FALSE, include=TRUE}
+level = 'species'
+OTU_milk = build_OTU_table(raw_OTUs, level) 
+
+#subset to non-control and remove bad sample
+sel = OTU_milk$meta$type != 'ctrl' | OTU_milk$meta$Label_IGA != 'ID1701-1'
+OTU_milk = filter_OTU(OTU_milk, sel)
+
+#do heatmap
+h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance = 0.01)
+
+#show the map
+print(h$gg)
+
+#counting UN fractions
+df = data.frame(
+  UN_fraction = UN_labels,
+  samples = hist(OTU_milk$OTU_rel$UN, plot=FALSE, breaks = UN_breaks)$counts
+)
+  
+#showing the table
+kable(df)
+```
+
+
+
+
 

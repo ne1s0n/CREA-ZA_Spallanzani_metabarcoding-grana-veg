@@ -97,6 +97,27 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_reads = 5){
   #---metadata
   meta = load_sample_codes()
   meta = meta[rownames(OTU),]
+  meta$caseificio = gsub(meta$caseificio, pattern = '^$', replacement = '[NON-GRANA]')
+  meta$code = paste(sep='_', meta$caseificio, meta$Id_Lab, meta$Label_IGA)
+  
+  #renaming everything
+  rownames(meta) = meta$code
+  rownames(OTU) = meta$code
+  rownames(OTU_rel) = meta$code
+  rownames(OTU_rel_screen) = meta$code
+  rownames(OTU_noUN) = meta$code
+  rownames(OTU_rel_noUN) = meta$code
+  rownames(OTU_rel_screen_noUN) = meta$code
+  
+  #ordering so that production sites are clumped
+  neworder = meta$code[order(meta$code)]
+  meta = meta[neworder,, drop=FALSE]
+  OTU = OTU[neworder,, drop=FALSE]
+  OTU_rel = OTU_rel[neworder,, drop=FALSE]
+  OTU_rel_screen = OTU_rel_screen[neworder,, drop=FALSE]
+  OTU_noUN = OTU_noUN[neworder,, drop=FALSE]
+  OTU_rel_noUN = OTU_rel_noUN[neworder,, drop=FALSE]
+  OTU_rel_screen_noUN = OTU_rel_screen_noUN[neworder,, drop=FALSE]
   
   return(list(
     OTU = OTU,
@@ -121,13 +142,13 @@ load_sample_codes = function(){
 
 filter_OTU = function(OTU, sample_selector){
   #filtering out the unwanted stuff
-  OTU$meta    = OTU$meta[sample_selector,]
-  OTU$OTU     = OTU$OTU[sample_selector,]
-  OTU$OTU_rel = OTU$OTU_rel[sample_selector,]
-  OTU$OTU_rel_screen = OTU$OTU_rel_screen[sample_selector,]
-  OTU$OTU_noUN     = OTU$OTU_noUN[sample_selector,]
-  OTU$OTU_rel_noUN = OTU$OTU_rel_noUN[sample_selector,]
-  OTU$OTU_rel_screen_noUN = OTU$OTU_rel_screen_noUN[sample_selector,]
+  OTU$meta    = OTU$meta[sample_selector, , drop=FALSE]
+  OTU$OTU     = OTU$OTU[sample_selector, ,drop=FALSE]
+  OTU$OTU_rel = OTU$OTU_rel[sample_selector, ,drop=FALSE]
+  OTU$OTU_rel_screen = OTU$OTU_rel_screen[sample_selector, , drop=FALSE]
+  OTU$OTU_noUN     = OTU$OTU_noUN[sample_selector, , drop=FALSE]
+  OTU$OTU_rel_noUN = OTU$OTU_rel_noUN[sample_selector, , drop=FALSE]
+  OTU$OTU_rel_screen_noUN = OTU$OTU_rel_screen_noUN[sample_selector, , drop=FALSE]
   
   #removing empty cols
   empty_col = colSums(is.na(OTU$OTU)) == nrow(OTU$OTU)
@@ -173,7 +194,7 @@ prepare_heatmap = function(mat, min_abundance = 0.01){
     theme(
       legend.position = 'bottom',
       axis.ticks = element_blank(),
-      axis.text.x = element_text(angle = 90, hjust = 1, size=9, face = "italic"),
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size=9, face = "italic"),
       axis.text.y = element_text(hjust = 1, size=11, vjust = 0.5),
       axis.title = element_blank()
     )
