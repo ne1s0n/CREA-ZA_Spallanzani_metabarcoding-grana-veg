@@ -18,6 +18,9 @@ library(plyr)
 library(printr)
 library(DT)
 library(xfun)
+library(vegan)
+library(reshape2)
+
 xfun::pkg_load2(c('base64enc', 'htmltools', 'mime'))
 
 source('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/script/data_manager.R')
@@ -322,7 +325,7 @@ Several heatmaps for dominant (>1%) centroids, at various taxonomic levels.
 ## Clade/Phylum
 ```{r, fig.height = 8, fig.align = "center", echo=FALSE, include=TRUE}
 level = 'clade_phylum'
-OTU_milk = build_OTU_table(raw_OTUs, level) 
+OTU_milk = build_OTU_table(raw_OTUs, level, min_sample_reads = 0) 
 
 #subset to non-control
 sel = OTU_milk$meta$type != 'ctrl'
@@ -350,14 +353,13 @@ df = data.frame(
 kable(df)
 ```
 
-
 ## Family
 ```{r, fig.height = 8, fig.align = "center", echo=FALSE, include=TRUE}
 level = 'family'
 OTU_milk = build_OTU_table(raw_OTUs, level) 
 
 #subset to non-control and remove bad sample
-sel = OTU_milk$meta$type != 'ctrl' | OTU_milk$meta$Label_IGA != 'ID1701-1'
+sel = OTU_milk$meta$type != 'ctrl'
 OTU_milk = filter_OTU(OTU_milk, sel)
 
 #do heatmap
@@ -383,7 +385,7 @@ level = 'genus'
 OTU_milk = build_OTU_table(raw_OTUs, level) 
 
 #subset to non-control and remove bad sample
-sel = OTU_milk$meta$type != 'ctrl' | OTU_milk$meta$Label_IGA != 'ID1701-1'
+sel = OTU_milk$meta$type != 'ctrl' 
 OTU_milk = filter_OTU(OTU_milk, sel)
 
 #do heatmap
@@ -410,7 +412,7 @@ level = 'species'
 OTU_milk = build_OTU_table(raw_OTUs, level) 
 
 #subset to non-control and remove bad sample
-sel = OTU_milk$meta$type != 'ctrl' | OTU_milk$meta$Label_IGA != 'ID1701-1'
+sel = OTU_milk$meta$type != 'ctrl' 
 OTU_milk = filter_OTU(OTU_milk, sel)
 
 #do heatmap
@@ -429,7 +431,56 @@ df = data.frame(
 kable(df)
 ```
 
+# Diversity analysis
 
+TODO: What is alpha diversity
 
+* Shannon diversity: ...
+* Simpson diversity: ...
+
+https://grunwaldlab.github.io/analysis_of_microbiome_community_data_in_r/07--diversity_stats.html
+## Alpha diversity - grana vs. non grana
+
+```{r, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
+levels = c('family', 'genus', 'species')
+
+for (level in levels){
+  #building the OTU table
+  OTU_milk = build_OTU_table(raw_OTUs, level) 
+  
+  #subset to non-control and remove bad sample
+  sel = OTU_milk$meta$type != 'ctrl' 
+  OTU_milk = filter_OTU(OTU_milk, sel)
+  
+  alpha = data.frame(
+    Shannon = diversity(OTU_milk$OTU_noUN, index = 'shannon'),
+    Simpson = diversity(OTU_milk$OTU_noUN, index = 'simpson'),
+    #invsimpson = diversity(OTU_milk$OTU_noUN, index = 'invsimpson'),
+    type = OTU_milk$meta$type, 
+    sample = rownames(OTU_milk$meta)
+  )
+
+  #moving to long format, for ggplot
+  alpha_long = melt(alpha, id.vars = c('sample', 'type'), variable.name = 'alpha')
+  
+  p = ggplot(alpha_long, aes(x=alpha, y=value, fill=type)) + geom_boxplot() + 
+    theme(legend.position = 'bottom', legend.title = element_blank(), axis.title = element_blank()) +
+    ggtitle(paste('Alpha diversity at rank:', level))
+  print(p)
+}
+```
+
+## Alpha diversity, provinces
+TODO
+
+## Beta diversity, dispersion
+TODO
+
+## Comparing provinces
+xxx
+
+# Clustering
+
+PCA, MDS...
 
 
