@@ -433,16 +433,28 @@ kable(df)
 
 # Diversity analysis
 
-TODO: What is alpha diversity
-
-* Shannon diversity: ...
-* Simpson diversity: ...
-
 https://grunwaldlab.github.io/analysis_of_microbiome_community_data_in_r/07--diversity_stats.html
-## Alpha diversity - grana vs. non grana
 
-```{r, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
+There are many ways to quantify complexity with the aim of comparing communities objectively. The two main categories of methods are known as alpha diversity and beta diversity [Whittaker, 1960]. Alpha diversity measures the diversity within a single sample and is based on the number and relative abundance of taxa at some rank (e.g. species, family). Beta diversity also uses the number of relative abundance of taxa at some rank, but measures variation between samples. In other words, an alpha diversity statistic describes a single sample and a beta diversity statistic describes how two samples compare.
+
+Common alpha diversity statistics include Shannon diversity, which measures how difficult it is to predict the identity of a randomly chosen organism inside a sample; and Simpson diversity, which represents the probability that two randomly chosen organisms are the same species.
+
+Common beta diversity ... [TODO]
+
+All diversity statistics were computed using the R package *vegan* [Oksanen et al., 2019]
+
+References:
+
+* Whittaker, Robert Harding. 1960. “Vegetation of the Siskiyou Mountains, Oregon and California.” Ecological Monographs 30 (3). Wiley Online Library: 279–338.
+* Jari Oksanen, F. Guillaume Blanchet, Michael Friendly, Roeland Kindt, Pierre Legendre, Dan McGlinn, Peter R.
+  Minchin, R. B. O'Hara, Gavin L. Simpson, Peter Solymos, M. Henry H. Stevens, Eduard Szoecs and Helene Wagner
+  (2019). vegan: Community Ecology Package. R package version 2.5-6. https://CRAN.R-project.org/package=vegan
+
+
+```{r compute alpha, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
 levels = c('family', 'genus', 'species')
+
+alpha = NULL
 
 for (level in levels){
   #building the OTU table
@@ -452,35 +464,42 @@ for (level in levels){
   sel = OTU_milk$meta$type != 'ctrl' 
   OTU_milk = filter_OTU(OTU_milk, sel)
   
-  alpha = data.frame(
+  alpha = rbind(alpha, data.frame(
     Shannon = diversity(OTU_milk$OTU_noUN, index = 'shannon'),
     Simpson = diversity(OTU_milk$OTU_noUN, index = 'simpson'),
     #invsimpson = diversity(OTU_milk$OTU_noUN, index = 'invsimpson'),
     type = OTU_milk$meta$type, 
-    sample = rownames(OTU_milk$meta)
-  )
+    province = OTU_milk$meta$province, 
+    sample = rownames(OTU_milk$meta),
+    level = level
+  ))
 
   #moving to long format, for ggplot
-  alpha_long = melt(alpha, id.vars = c('sample', 'type'), variable.name = 'alpha')
-  
-  p = ggplot(alpha_long, aes(x=alpha, y=value, fill=type)) + geom_boxplot() + 
-    theme(legend.position = 'bottom', legend.title = element_blank(), axis.title = element_blank()) +
-    ggtitle(paste('Alpha diversity at rank:', level))
-  print(p)
+  alpha_long = melt(alpha, id.vars = c('sample', 'type', 'level', 'province'), variable.name = 'alpha')
 }
 ```
 
+## Alpha diversity - grana vs. non grana
+```{r, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
+p = ggplot(alpha_long, aes(x=alpha, y=value, fill=type)) + geom_boxplot() +  facet_wrap(~level, nrow = 1) + 
+  theme(legend.position = 'bottom', legend.title = element_blank(), axis.title = element_blank()) +
+  ggtitle('Alpha diversity: grana vs. non-grana')
+print(p)
+```
+
 ## Alpha diversity, provinces
-TODO
+```{r, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
+p = ggplot(subset(alpha_long, province != '-'), aes(x=alpha, y=value, fill=province)) + geom_boxplot() +  facet_wrap(~level, nrow = 1) + 
+  theme(legend.position = 'bottom', axis.title = element_blank()) +
+  scale_fill_discrete(guide = guide_legend(nrow = 1, title = NULL) ) +
+  ggtitle('Alpha diversity: provinces')
+print(p)
+```
 
 ## Beta diversity, dispersion
 TODO
 
-## Comparing provinces
-xxx
-
 # Clustering
-
-PCA, MDS...
+[TODO] PCA, MDS...
 
 
