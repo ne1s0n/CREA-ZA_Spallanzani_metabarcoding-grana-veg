@@ -40,7 +40,7 @@ load_all_OTU_files = function(infolder){
   return(res)
 }
 
-build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_reads = 5){
+build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_centroid_reads = 5, min_sample_reads = 1000){
   OTU = data.frame(row.names = names(raw_OTU_list))
   
   #---OTU table, absolute values
@@ -54,19 +54,25 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_reads = 5){
     
     #if the required level does not pass the filter on reads it gets binned
     #to unassigned
-    if(any(curr$reads < min_reads)){
+    if(any(curr$reads < min_centroid_reads)){
       UN_sel = curr$domain == 'UN'
-      bad_sel = curr$reads < min_reads
+      bad_sel = curr$reads < min_centroid_reads
       curr[UN_sel, 'reads'] = curr[UN_sel, 'reads'] + curr[bad_sel, 'reads']
       curr = curr[!bad_sel,]
     }
-    curr = subset(curr, reads >= min_reads)
+    curr = subset(curr, reads >= min_centroid_reads)
     
     #adding the results
     for (i in 1:nrow(curr)){
       OTU[sample, curr[i, level]] = curr[i, 'reads']
     }
   }
+  
+  #NAs at this point are considered as zeros
+  OTU[is.na(OTU)] = 0
+  
+  #samples not reaching the minimum amount of reads are removed
+  OTU = OTU[rowSums(OTU) >= min_sample_reads,]
   
   #---relative OTUs count
   #tot reads per sample
@@ -151,11 +157,11 @@ filter_OTU = function(OTU, sample_selector){
   OTU$OTU_rel_screen_noUN = OTU$OTU_rel_screen_noUN[sample_selector, , drop=FALSE]
   
   #removing empty cols
-  empty_col = colSums(is.na(OTU$OTU)) == nrow(OTU$OTU)
+  empty_col = colSums(OTU$OTU) == 0
   OTU$OTU     = OTU$OTU[,!empty_col, drop=FALSE]
   OTU$OTU_rel = OTU$OTU_rel[,!empty_col, drop=FALSE]
   OTU$OTU_rel_screen = OTU$OTU_rel_screen[,!empty_col, drop=FALSE]
-  empty_col = colSums(is.na(OTU$OTU_noUN)) == nrow(OTU$OTU_noUN)
+  empty_col = colSums(OTU$OTU_noUN) == 0
   OTU$OTU_noUN     = OTU$OTU_noUN[,!empty_col, drop=FALSE]
   OTU$OTU_rel_noUN = OTU$OTU_rel_noUN[,!empty_col, drop=FALSE]
   OTU$OTU_rel_screen_noUN = OTU$OTU_rel_screen_noUN[,!empty_col, drop=FALSE]
@@ -168,11 +174,8 @@ prepare_heatmap = function(mat, min_abundance = 0.01){
   #removing unassigned, if present
   mat$UN = NULL
   
-  #NA goes to zero
-  mat[is.na(mat)] = 0
-  
   #removing organisms out of thresholds
-  bad = apply(mat, 2, max) < min_abundance
+  bad = apply(mat, 2, max, na.rm = TRUE) < min_abundance
   mat = mat[, !bad, drop=FALSE]
   
   #sorting by numerosity
