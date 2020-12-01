@@ -65,7 +65,7 @@ To highlight changes use
 * 2020-11-16 - answer to open question 3
 * 2020-11-17 - added heatmaps for frequencies at various taxonomic levels
 * 2020-11-30 - added diversity analysis, alpha
-* 2020-12-01 - added genus level for control samples
+* 2020-12-01 - added genus level for control samples, added reference to duplicate samples notes
 
 # Aim
 
@@ -79,6 +79,18 @@ samples = samples[,c("Id_Lab", "type", "caseificio", "MESE", "data_prelievo")]
 samples$province = sapply(samples$caseificio, FUN = substr, start=1, stop=2)
 samples[samples$province == '', 'province'] = '-'
 ```
+
+## Notes on samples
+
+Here's a piece of correspondence with Anna and Rossana, for future reference:
+
+---
+
+* il campione con id_sample 10, 17 e 21 (ID_lab:177), è sempre lo stesso campione ma:
+  * 10 e 17 due aliquote (per motivi di metodo estrattivo) della stessa estrazione ma con curve al nanodrop diverse;
+  * 21 stesso campione di latte ma estratto con scala small (cioè men volume per un tentativo iniziale di miniaturizzare)
+* campione  id_sample  9 e 22 (ID_lab:387): stesso campione di latte ma estratto con scala small (cioè men volume per un tentativo iniziale di miniaturizzare)
+
 
 ## By type
 
