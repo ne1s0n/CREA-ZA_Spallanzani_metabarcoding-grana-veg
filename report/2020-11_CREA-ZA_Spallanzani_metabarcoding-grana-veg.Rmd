@@ -64,6 +64,8 @@ To highlight changes use
 * 2020-11-16 - added section on filtering, control samples, a first pass for milk samples
 * 2020-11-16 - answer to open question 3
 * 2020-11-17 - added heatmaps for frequencies at various taxonomic levels
+* 2020-11-30 - added diversity analysis, alpha
+* 2020-12-01 - added genus level for control samples
 
 # Aim
 
@@ -202,7 +204,11 @@ with some levels (e.g. clade, subtribe) often absent.
 
 # Control samples
 
-In this section I focus on the three control samples: GT ("MANGIME X GP"), N ("NUCLEO"), S ("SOIA"). 
+In this section I focus on the three control samples: GT ("MANGIME X GP"), N ("NUCLEO"), S ("SOIA"), with the following expected compositions:
+
+* S: soy (glycine max)
+* GT: soy (48%), girasole (36%), "tritello" (triticum wheat), maize, "cruscami" (???, low percentage anyway)
+* N: to be investigated
 
 ```{r echo=FALSE, include=TRUE}
 level = 'domain'
@@ -241,7 +247,25 @@ DT::datatable(df)
 ```
 
 This table still is quite usable, but shows a trend: the number of unassigned entries grows when we go deeper into the
-taxonomy tree. We already have about 8% of unassigned reads for GT and N, and if we go down to **species** level:
+taxonomy tree. We already have about 8% of unassigned reads for GT and N. Going down to **genus** level:
+
+```{r echo=FALSE, include=TRUE}
+level = 'genus'
+OTU_ctrl = build_OTU_table(raw_OTUs, level) 
+
+#subset to control
+sel = OTU_ctrl$meta$type == 'ctrl'
+OTU_ctrl = filter_OTU(OTU_ctrl, sel)
+
+#transpose, for ease of reading
+df = data.frame(t(OTU_ctrl$OTU_rel_screen))
+colnames(df) = OTU_ctrl$meta$Id_Lab
+DT::datatable(df)
+```
+
+
+
+And to **species** level:
 
 ```{r echo=FALSE, include=TRUE}
 level = 'species'
@@ -433,13 +457,11 @@ kable(df)
 
 # Diversity analysis
 
-https://grunwaldlab.github.io/analysis_of_microbiome_community_data_in_r/07--diversity_stats.html
-
 There are many ways to quantify complexity with the aim of comparing communities objectively. The two main categories of methods are known as alpha diversity and beta diversity [Whittaker, 1960]. Alpha diversity measures the diversity within a single sample and is based on the number and relative abundance of taxa at some rank (e.g. species, family). Beta diversity also uses the number of relative abundance of taxa at some rank, but measures variation between samples. In other words, an alpha diversity statistic describes a single sample and a beta diversity statistic describes how two samples compare.
 
 Common alpha diversity statistics include Shannon diversity, which measures how difficult it is to predict the identity of a randomly chosen organism inside a sample; and Simpson diversity, which represents the probability that two randomly chosen organisms are the same species.
 
-Common beta diversity ... [TODO]
+Beta diversity is a way to quantify the differences between two communities. There are several possible metrics available, the two more commonly used being *Bray–Curtis* beta diversity and *Weighted Unifrac* beta diversity. [**CITATION NEEDED**]. Given that it consists of a series of pair-wise comparisons between samples, beta diversity takes naturally the shape of a triangular matrix. An helpful way to represent it post Multi Dimensional Scaling, so that the two most meaningful dimensions are plotted.
 
 All diversity statistics were computed using the R package *vegan* [Oksanen et al., 2019]
 
@@ -451,7 +473,7 @@ References:
   (2019). vegan: Community Ecology Package. R package version 2.5-6. https://CRAN.R-project.org/package=vegan
 
 
-```{r compute alpha, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
+```{r compute alpha, echo=FALSE, include=TRUE}
 levels = c('family', 'genus', 'species')
 
 alpha = NULL
@@ -474,9 +496,10 @@ for (level in levels){
     level = level
   ))
 
-  #moving to long format, for ggplot
-  alpha_long = melt(alpha, id.vars = c('sample', 'type', 'level', 'province'), variable.name = 'alpha')
 }
+
+#moving to long format, for ggplot
+alpha_long = melt(alpha, id.vars = c('sample', 'type', 'level', 'province'), variable.name = 'alpha')
 ```
 
 ## Alpha diversity - grana vs. non grana
@@ -486,6 +509,40 @@ p = ggplot(alpha_long, aes(x=alpha, y=value, fill=type)) + geom_boxplot() +  fac
   ggtitle('Alpha diversity: grana vs. non-grana')
 print(p)
 ```
+We can formally verify the consistency of this trend via a statistical test. Unfortunately we cannot use the classical Student's T test because the data are not normal (verified via Shapiro test for normality, data not reported). We must thus use the Wilcoxon rank sum test. The next table reports the p-values (alternative hypothesis: diversity are significantly different between grana and non-grana):
+
+```{r, echo=FALSE, include=TRUE}
+levels = c('family', 'genus', 'species')
+wil = NULL
+
+for (l in levels){
+  w_sha = wilcox.test(
+    subset(alpha_long, level==l & type=='grana' & alpha == 'Shannon')$value,
+    subset(alpha_long, level==l & type=='non-grana' & alpha == 'Shannon')$value
+  )
+  w_sim = wilcox.test(
+    subset(alpha_long, level==l & type=='grana' & alpha == 'Simpson')$value,
+    subset(alpha_long, level==l & type=='non-grana' & alpha == 'Simpson')$value
+  )
+  wil = rbind(wil, data.frame(
+    level = l,
+    Shannon_pvalue = w_sha$p.value,
+    Simpson_pvalue = w_sim$p.value
+  ))
+  
+}
+
+kable(wil)
+```
+
+Unfortunately, it appears that there is no statistically significant difference (all p-values are greater than 0.05). This is heavily influenced by one single non-grana sample ([NON-GRANA]_Na_ID1557-15) which has a very high diversity. E.g. for Shannon index at species level we have:
+
+```{r, echo=FALSE, include=TRUE}
+tmp = subset(alpha_long, level == 'species' & alpha == 'Shannon' & type == 'non-grana')
+kable(tmp)
+```
+
+With a Shannon alpha diversity of 1.468 compared to the other three all being lower than 0.5, the "Na" sample is able to drive a lot of the statistical test.
 
 ## Alpha diversity, provinces
 ```{r, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
@@ -494,10 +551,98 @@ p = ggplot(subset(alpha_long, province != '-'), aes(x=alpha, y=value, fill=provi
   scale_fill_discrete(guide = guide_legend(nrow = 1, title = NULL) ) +
   ggtitle('Alpha diversity: provinces')
 print(p)
+
+
 ```
 
-## Beta diversity, dispersion
+Given that we have multiple groups (i.e. multiple provinces) we can perform an analysis of variance (ANOVA), which will tell if there are any statistically significant differences between the groups. The p-values are reported in the following table:
+
+```{r alpha ANOVA, echo=FALSE, include=TRUE, eval=TRUE}
+levels = c('family', 'genus', 'species')
+ano = NULL
+
+for (l in levels){
+  df_sha = subset(alpha_long, level==l & type=='grana' & alpha == 'Shannon')
+  a_sha = aov(value ~ province, data = df_sha)
+  s_sha = summary(a_sha)
+  df_sim = subset(alpha_long, level==l & type=='grana' & alpha == 'Simpson')
+  a_sim = aov(value ~ province, data = df_sim)
+  s_sim = summary(a_sim)
+  
+  ano = rbind(ano, data.frame(
+    level = l,
+    Shannon_pvalue = s_sha[[1]][1,'Pr(>F)'],
+    Simpson_pvalue = s_sim[[1]][1,'Pr(>F)']
+  ))
+  
+}
+
+kable(ano)
+
+
+
+```
+
+It appears clear that the deeper we go into the taxonomic tree the more significant the differences between provinces are. Moreover, Simpson test gives, in general, lower p-values, meaning that this metric is able to better intercept and summarize the existing differences among our groups.
+
+## Beta diversity
+
+[TODO]
+```{r compute beta, echo=FALSE, include=FALSE, eval=FALSE}
+
+ #single level
+beta_dist = vegdist(OTU_milk$OTU_noUN, index = "bray")  
+mds <- metaMDS(beta_dist)
+mds_data <- as.data.frame(mds$points)
+
+mds_data$code <- rownames(mds_data)
+mds_data <- dplyr::left_join(mds_data, OTU_milk$meta)
+
+
+library(ggplot2)
+ggplot(mds_data, aes(x = MDS1, y = MDS2, color = type)) +
+  geom_point()
+ggplot(subset(mds_data, province!= '-'), aes(x = MDS1, y = MDS2, color = province, shape=province)) +
+  geom_point()
+
+
+
+
+
+#multi levels
+levels = c('family', 'genus', 'species')
+
+beta = NULL
+
+for (level in levels){
+  #building the OTU table
+  OTU_milk = build_OTU_table(raw_OTUs, level) 
+  
+  #subset to non-control and remove bad sample
+  sel = OTU_milk$meta$type != 'ctrl' 
+  OTU_milk = filter_OTU(OTU_milk, sel)
+  
+  beta_dist = vegdist(OTU_milk$OTU_noUN,
+                     index = "bray")  
+
+}
+
+```
+
+
+
+## Beta dispersion
 TODO
+
+# Taxon abundance 
+[TODO]
+```{r, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
+#see taxa in roots, here https://grunwaldlab.github.io/analysis_of_microbiome_community_data_in_r/07--diversity_stats.html
+# obj$data$type_abund <- calc_taxon_abund(obj, "otu_rarefied",
+#                                         cols = sample_data$SampleID,
+#                                         groups = sample_data$Type)
+
+```
 
 # Clustering
 [TODO] PCA, MDS...
