@@ -586,23 +586,35 @@ for (l in levels){
     Shannon_pvalue = s_sha[[1]][1,'Pr(>F)'],
     Simpson_pvalue = s_sim[[1]][1,'Pr(>F)']
   ))
-  
 }
 
 kable(ano)
-
-
-
 ```
 
 It appears clear that the deeper we go into the taxonomic tree the more significant the differences between provinces are. Moreover, Simpson test gives, in general, lower p-values, meaning that this metric is able to better intercept and summarize the existing differences among our groups.
+
+## Rarefaction curve
+
+The following plot shows the rarefaction curves, where each line represents a sample. This plot links the amount of detected species as a function of the number of reads. Intuitively, if the reads are too few not all species will be detected. But after a certain point more reads are not useful because no more species are detected. Labels for samples are not reported to avoid plot overcrowding, but could be put back if required.
+
+```{r, echo=FALSE, eval=TRUE}
+level = 'species'
+
+#building the OTU table
+OTU_milk = build_OTU_table(raw_OTUs, level) 
+
+min_reads = min(rowSums(OTU_milk$OTU))
+cur = rarecurve(OTU_milk$OTU, step = 1, col = "blue", label = FALSE, cex = 0.6)
+abline(v=min_reads)
+```
+
+The plot clearly shows that all samples reached stability.
 
 ## Beta diversity
 
 [TODO]
 ```{r compute beta, echo=FALSE, include=FALSE, eval=FALSE}
-
- #single level
+#single level
 beta_dist = vegdist(OTU_milk$OTU_noUN, index = "bray")  
 mds <- metaMDS(beta_dist)
 mds_data <- as.data.frame(mds$points)
@@ -610,16 +622,11 @@ mds_data <- as.data.frame(mds$points)
 mds_data$code <- rownames(mds_data)
 mds_data <- dplyr::left_join(mds_data, OTU_milk$meta)
 
-
 library(ggplot2)
 ggplot(mds_data, aes(x = MDS1, y = MDS2, color = type)) +
   geom_point()
 ggplot(subset(mds_data, province!= '-'), aes(x = MDS1, y = MDS2, color = province, shape=province)) +
   geom_point()
-
-
-
-
 
 #multi levels
 levels = c('family', 'genus', 'species')
