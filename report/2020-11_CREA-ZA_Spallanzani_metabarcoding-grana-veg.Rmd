@@ -24,11 +24,19 @@ library(reshape2)
 xfun::pkg_load2(c('base64enc', 'htmltools', 'mime'))
 
 source('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/script/data_manager.R')
-infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20200706/'
-delivery_20200706 = load_all_OTU_files(infolder)
-infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20201009/'
-delivery_20201009 = load_all_OTU_files(infolder)
-raw_OTUs = c(delivery_20200706, delivery_20201009)
+
+#old DB, with plants from all over the world
+if (FALSE){
+  infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20200706/'
+  delivery_20200706 = load_all_OTU_files(infolder)
+  infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20201009/'
+  delivery_20201009 = load_all_OTU_files(infolder)
+  raw_OTUs = c(delivery_20200706, delivery_20201009)
+}
+
+#hand picked DB with Grana Padano + Italian plants
+infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210224/custom_db/up_to_200kb/'
+raw_OTUs = load_all_OTU_files(infolder)
 
 ```
 
@@ -68,10 +76,11 @@ To highlight changes use
 * 2020-12-01 - added genus level for control samples, added reference to duplicate samples notes
 * 2020-12-07 - added beta diversity, rarefaction curves, open question about diary homogeneity
 * 2021-02-16 - added summary for bioinformatics analysis (in Italian)
+* 2021-02-28 - started rewriting the whole report using the new, local database
 
 # Aim
 
-Metabarcoding analysis on Grana Padano milk, focusing on vegetable presence.
+Metabarcoding analysis on Grana Padano milk, focusing on vegetable presence. Plant sequences are restricted to a hand picked database containing plants permitted by the Grana Padano consortium rules, plus a selection of Italian flora.
 
 # Available samples
 
@@ -84,7 +93,7 @@ samples[samples$province == '', 'province'] = '-'
 
 ## Notes on samples
 
-Here's a piece of correspondence with Anna and Rossana, for future reference:
+Here's an exchange with Anna and Rossana, for future reference:
 
 ---
 
@@ -93,6 +102,43 @@ Here's a piece of correspondence with Anna and Rossana, for future reference:
   * 21 stesso campione di latte ma estratto con scala small (cioè men volume per un tentativo iniziale di miniaturizzare)
 * campione  id_sample  9 e 22 (ID_lab:387): stesso campione di latte ma estratto con scala small (cioè men volume per un tentativo iniziale di miniaturizzare)
 
+## Notes on the custom database
+
+Here's an exchange with Slobodanka from IGA, for future reference:
+
+---
+
+
+ Abbiamo interogato due db, quella con le sequenze di lunghezza massima di 10kb (up_to_10kb) e quella che contiene anche interi cloroplasti (up_to_200kb).
+
+Ecco i dettagli sulla creazione del db up_to_200kb:
+
+    Ottenuta dal cliente una lista di 910 accessioni da scaricare e da usare come db
+
+    Dopo aver epurate le accessioni duplicate o triplicate siamo scesi a 893 accessioni
+
+    Scaricate le sequenze con lo script Perl getSeqEMBL.pl oppure manualmente, a seconda delle diverse accessioni
+
+    Tolta l'accessione PQIB00000000.2 che è un assembly intero (con 1306 sequenze) e tenuta dalla lista l'accessione PQIB02001306.1 che è uno dei contig sopra
+
+    Sono state poi filtrate 5 sequenze vuote e le 14 sequenze più lunghe di 200kb. Rimangono 873 accessioni.
+    La pipeline dell'analisi è la stessa delle volete scorse.
+
+    Ottenuta dal cliente una lista di 910 accessioni da scaricare e da usare come db
+
+    Dopo aver epurate le accessioni duplicate o triplicate siamo scesi a 893 accessioni
+
+    Scaricate le sequenze con lo script Perl getSeqEMBL.pl oppure manualmente, a seconda delle diverse accessioni
+
+    Tolta l'accessione PQIB00000000.2 che è un assembly intero (con 1306 sequenze) e tenuta dalla lista l'accessione PQIB02001306.1 che è uno dei contig sopra
+
+    Sono state poi filtrate 5 sequenze vuote e le 14 sequenze più lunghe di 200kb. Rimangono 873 accessioni.
+
+Sono stati ulteriormente eliminate le sequenze più lunghe di 10kb per creazione del db up_to_10kb.
+
+La pipeline dell'analisi è la stessa delle volete scorse.
+
+Da una prima occhiata i risultati ottenuti con 10kb e 200kb sono identici. 
 
 ## By type
 
@@ -261,7 +307,7 @@ DT::datatable(df)
 ```
 
 This table still is quite usable, but shows a trend: the number of unassigned entries grows when we go deeper into the
-taxonomy tree. We already have about 8% of unassigned reads for GT and N. Going down to **genus** level:
+taxonomy tree. Going down to **genus** level:
 
 ```{r echo=FALSE, include=TRUE}
 level = 'genus'
@@ -373,9 +419,7 @@ h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance=0.01)
 print(h$gg)
 ```
 
-At Phylum level 100% of the reads are Streptophyta, with the single exception of sample ID1707-1, which is 100% unclassified. This sample will be removed from next analyses.
-
-Taking a look at the distribution of UN fractions:
+At Phylum level 100% of the reads are Streptophyta. Taking a look at the distribution of UN fractions:
 
 ```{r echo=FALSE, include=TRUE}
 #counting UN fractions
