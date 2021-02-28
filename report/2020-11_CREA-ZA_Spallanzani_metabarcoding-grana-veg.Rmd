@@ -67,6 +67,7 @@ To highlight changes use
 * 2020-11-30 - added diversity analysis, alpha
 * 2020-12-01 - added genus level for control samples, added reference to duplicate samples notes
 * 2020-12-07 - added beta diversity, rarefaction curves, open question about diary homogeneity
+* 2021-02-16 - added summary for bioinformatics analysis (in Italian)
 
 # Aim
 
@@ -735,3 +736,17 @@ I've investigated the sampling date, too, to see if it could explain the visible
 ```
 
 
+# Riassunto per relazione tecnica
+
+Il punto di partenza per l'analisi bioinformatica è stato il dataset di numerosità di unità tassonomiche (OTU -  operational taxonomic unit), prodotto da IGA Technology Services e riportante, per ciascuno dei campioni analizzati, la numerosità di frammenti di DNA (reads) afferibili a distinti organismi. L'analisi dell'istituto IGA si è concentratata sul DNA vegetale e ha utilizzato come riferimento un database contenente le sequenze nucleotidiche di 181mila specie vegetali. Laddove il DNA ritrovato nei campioni di latte non corrisponde a nessun elemento del database vegetale la OTU è stata classificata come non identificata. Analisi successive ci hanno portato a stimare che il 63.4% del DNA estratto è bovino, proveniente cioè dalle vacche che hanno prodotto il latte in analisi.
+
+Per compensare la natura intrinsecamente frammentaria delle informazioni ottenute sono stati implementati dei filtri che eliminassero i dati con un basso livello di affidabilità. A tal fine tutte le OTU con numerosità minore di cinque reads sono state scartate.
+
+Per procedere con le analisi ogni campione è stato quindi considerato come un ecosistema isolato, permettendo così di utilizzare gli strumenti statistici sviluppati in ambito ecologico. I due approcci metodologici principali mirano a fornire misure oggettive e comparabili della diversità biologica presente in ciacuna comunità e prendono il nome di parametri di diversità alfa e beta (alpha e beta diversity). 
+La diversità alfa misura la ricchezza biologica all'interno di ogni singolo campioni, e si basa sul numero el'abbondanza relativa di "individui" (nel nostro caso, abbondanza di OTU) al livello tassonomico scelto per l'analisi. Anche la diversità beta fa uso delle informazioni sulla ricchezza biologica, ma misura la variazione tra comunità. In altre parole, la diversità alfa descrive un singolo campione, mentre la diversità beta confronta due campioni. 
+
+La diversità alfa può essere misurata utilizzando diversi coefficienti statistici. Per questa analisi abbiamo usato due tra gli indici più comuni, l'indice di Shannon e l'indice di Simpson. Per la diversità beta abbiamo usato l'indice Bray-Curtis. Dato che la diversità beta confronta coppie di campioni è spesso utile visualizzare i risultati dopo averne risotto la dimensionalità con una tecnica come il Multi Dimensional Scaling.
+
+## Risultati
+
+L'analisi della diversità evidenzia la presenza di due sottogruppi, trasversali alla divisione grana-non grana, di campioni con alta e bassa ricchezza microbiologica [VEDI FIGURA DENSITÀ]. Equivalentemente l'analisi della diversità beta indica una netta separazione dei campioni in due cluster. [VEDI FIGURA BETA]
