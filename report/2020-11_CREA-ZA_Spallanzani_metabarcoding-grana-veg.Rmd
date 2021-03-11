@@ -25,7 +25,7 @@ xfun::pkg_load2(c('base64enc', 'htmltools', 'mime'))
 
 source('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/script/data_manager.R')
 
-#old DB, with plants from all over the world
+#old world DB, with plants from all over the world
 if (FALSE){
   infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20200706/'
   delivery_20200706 = load_all_OTU_files(infolder)
@@ -34,9 +34,19 @@ if (FALSE){
   raw_OTUs = c(delivery_20200706, delivery_20201009)
 }
 
-#hand picked DB with Grana Padano + Italian plants
+
+#hand picked DB with Grana Padano + Italian plants, first iteration (problem with soy)
+if (FALSE){
 infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210224/custom_db/up_to_200kb/'
 raw_OTUs = load_all_OTU_files(infolder)
+}
+
+#hand picked DB with Grana Padano + Italian plants, second iteration
+if (TRUE){
+infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210308/custom_db/up_to_10kb/'
+infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210308/custom_db/up_to_200kb/'
+raw_OTUs = load_all_OTU_files(infolder)
+}
 
 ```
 
@@ -77,6 +87,8 @@ To highlight changes use
 * 2020-12-07 - added beta diversity, rarefaction curves, open question about diary homogeneity
 * 2021-02-16 - added summary for bioinformatics analysis (in Italian)
 * 2021-02-28 - started rewriting the whole report using the new, local database
+* 2021-03-10 - started rewriting the whole report using the new, local database (second iteration)
+* 2021-03-11 - moved from up_to_10k to up_to_200k
 
 # Aim
 
@@ -108,38 +120,21 @@ Here's an exchange with Slobodanka from IGA, for future reference:
 
 ---
 
-
- Abbiamo interogato due db, quella con le sequenze di lunghezza massima di 10kb (up_to_10kb) e quella che contiene anche interi cloroplasti (up_to_200kb).
+Abbiamo interogato due db, quella con le sequenze di lunghezza massima di 10kb (up_to_10kb) e quella che contiene anche interi cloroplasti (up_to_200kb).
 
 Ecco i dettagli sulla creazione del db up_to_200kb:
 
-    Ottenuta dal cliente una lista di 910 accessioni da scaricare e da usare come db
+Lista originale (una volta rimosse le due celle vuote): rbcL_database_20210303.list.txt.orig
 
-    Dopo aver epurate le accessioni duplicate o triplicate siamo scesi a 893 accessioni
+Ottenuta dal cliente una lista di 1938 accessioni da scaricare e da usare come db
 
-    Scaricate le sequenze con lo script Perl getSeqEMBL.pl oppure manualmente, a seconda delle diverse accessioni
+Dopo aver epurate le accessioni con due o più copie siamo scesi a 1834 accessioni
 
-    Tolta l'accessione PQIB00000000.2 che è un assembly intero (con 1306 sequenze) e tenuta dalla lista l'accessione PQIB02001306.1 che è uno dei contig sopra
+Scaricate le sequenze con lo script Perl getSeqEMBL.pl oppure manualmente, a seconda delle diverse accessioni
 
-    Sono state poi filtrate 5 sequenze vuote e le 14 sequenze più lunghe di 200kb. Rimangono 873 accessioni.
-    La pipeline dell'analisi è la stessa delle volete scorse.
+Tolta l'accessione PQIB00000000.2 che è un assembly intero (con 1306 sequenze) e tenuta dalla lista l'accessione PQIB02001306.1 che è uno dei contig sopra
 
-    Ottenuta dal cliente una lista di 910 accessioni da scaricare e da usare come db
-
-    Dopo aver epurate le accessioni duplicate o triplicate siamo scesi a 893 accessioni
-
-    Scaricate le sequenze con lo script Perl getSeqEMBL.pl oppure manualmente, a seconda delle diverse accessioni
-
-    Tolta l'accessione PQIB00000000.2 che è un assembly intero (con 1306 sequenze) e tenuta dalla lista l'accessione PQIB02001306.1 che è uno dei contig sopra
-
-    Sono state poi filtrate 5 sequenze vuote e le 14 sequenze più lunghe di 200kb. Rimangono 873 accessioni.
-
-Sono stati ulteriormente eliminate le sequenze più lunghe di 10kb per creazione del db up_to_10kb.
-
-La pipeline dell'analisi è la stessa delle volete scorse.
-
-Da una prima occhiata i risultati ottenuti con 10kb e 200kb sono identici. 
-
+Sono state poi filtrate le sequenze più lunghe di 200 e 10 kb. Rimaniamo con 1797 e 1426 sequenze, rispettivamente
 ## By type
 
 ```{r echo=FALSE, include=TRUE}
@@ -591,14 +586,16 @@ for (l in levels){
 kable(wil)
 ```
 
-Unfortunately, it appears that there is no statistically significant difference (all p-values are greater than 0.05). This is heavily influenced by one single non-grana sample ([NON-GRANA]_Na_ID1557-15) which has a very high diversity. E.g. for Shannon index at species level we have:
+Unfortunately, it appears that there is no statistically significant difference (all p-values are greater than 0.05).
+
+This is heavily influenced by one single non-grana sample ([NON-GRANA]_sicilia_ID1701-25) which has a very high diversity. E.g. for Shannon index at species level we have:
 
 ```{r, echo=FALSE, include=TRUE}
 tmp = subset(alpha_long, level == 'species' & alpha == 'Shannon' & type == 'non-grana')
 kable(tmp)
 ```
 
-With a Shannon alpha diversity of 1.468 compared to the other three all being lower than 0.5, the "Na" sample is able to drive a lot of the statistical test.
+With a Shannon alpha diversity of 0.673 (more than five times higher than the second one, the Na sample), the "Sicilia" sample is able to drive a lot of the statistical test.
 
 This trend is present also in the "grana" samples. In fact if we take a look at the density distribution (similar to a traditional histogram) of the Shannon alpha diversity we see:
 
@@ -611,10 +608,9 @@ print(p)
 
 It appears clear that:
 
-* grana samples are by far non-normal. In fact they seem to be bimodal: samples with high or low diversity, with little middle ground
-* this bimodal trend is present in all taxonomic levels
+* all samples are clearly non-normal. In fact they seem to be bimodal, or at least the sum of two distributions, one with lower and one with higher average diversity
+* this bimodal trend is exacerbated for non-grana at species level, but with only four samples is hard to get any meaningful conclusion
 * same results with Simpson diversity, not reported
-* at least at species level, the non-grana samples follow the same distribution, as previously noted
 
 The bimodal trend is actually intrinsic to the data. Even samples from the same dairy show it, e.g. for milk source "CN911":
 
@@ -667,7 +663,7 @@ for (l in levels){
 kable(ano)
 ```
 
-It appears clear that the deeper we go into the taxonomic tree the more significant the differences between provinces are. Moreover, Simpson test gives, in general, lower p-values, meaning that this metric is able to better intercept and summarize the existing differences among our groups.
+What is apparent from the plot is confirmed from the statistical analysis: non significant differences can be found at this stage.
 
 ## Rarefaction curves
 
@@ -684,15 +680,28 @@ sel = OTU_milk$meta$type != 'ctrl'
 OTU_milk = filter_OTU(OTU_milk, sel)
 
 min_reads = min(rowSums(OTU_milk$OTU_noUN))
+median_reads = median(rowSums(OTU_milk$OTU_noUN))
 cur = rarecurve(OTU_milk$OTU_noUN, step = 1, col = "blue", label = FALSE, cex = 0.6)
-abline(v=min_reads)
+abline(v=min_reads, col='red')
+abline(v=median_reads)
+```
+Zooming a bit:
+
+```{r rarefaction curves zoomed, echo=FALSE, eval=TRUE}
+cur = rarecurve(OTU_milk$OTU_noUN, step = 1, col = "blue", label = FALSE, cex = 0.6, xlim=c(0, 10000))
+abline(v=min_reads, col='red')
+abline(v=median_reads)
 ```
 
-The plot is a bit problematic. Some lines take a very long time to reach saturation, with the slowest one requiring ~7000 reads before becoming horizontal, and a couple of other lines requiring ~3000 reads. Unfortunately, nine lines stop before 1000 reads and twenty before 2000, as reported in the following table (note: we are talking about assigned reads, i.e. we are not counting unassigned, probably bovine reads):
+The plot is a bit problematic. Each blue line represents a sample. As the number of reads grows, the number of species found in each sample grows as well, but up to a point. In fact, the lines are expected to saturate and become flat, since each sample contains a certain amount of species.
+
+Some lines take a very long time to reach saturation, with the slowest one requiring ~7000 reads before becoming horizontal, and a couple of other lines requiring ~3000 reads. For reference, the black vertical line is the *minimum* number of reads found in any samples, and the red vertical line is the *median* number of reads. 
+
+Unfortunately, sixteen lines stop before 3000 reads and thirty-three before 7000, as reported in the following table (note: we are talking about assigned reads, i.e. we are not counting unassigned, probably bovine reads):
 
 ```{r rarefaction stats, echo=FALSE, eval=TRUE}
 binned_reads = data.frame(
-  threshold = c(250, 500, 750, 1000, 1500, 2000, 4000, 6000, 13000)
+  threshold = c(250, 500, 750, 1000, 2000, 3000, 7000, 10000, 13000)
 )
 x = rowSums(OTU_milk$OTU_noUN)
 
@@ -703,7 +712,7 @@ for (i in 1:nrow(binned_reads)){
 kable(binned_reads)
 ```
 
-The conclusion is that a non negligible fraction of the samples (a third?) could have used more reads.
+The conclusion is that a non negligible fraction of the samples (a third? two thirds?) could have used more reads.
 
 ## Beta diversity
 
@@ -735,7 +744,7 @@ shapes_prov = c(BS=17,  CN=18, CR=19, PC=0, TN=1, VI=2, VR=3)
 ```
 
 ### By type, grana vs. non grana
-```{r beta by type, echo=FALSE, include=TRUE, eval=TRUE}
+```{r beta by type, echo=FALSE, include=TRUE, eval=TRUE, warning=FALSE}
 #building a column for labels
 mds_data$labs = mds_data$Id_Lab
 mds_data[mds_data$type == 'grana', 'labs'] = NA
@@ -746,7 +755,7 @@ ggplot(mds_data, aes(x = MDS1, y = MDS2, color = type, label=labs)) + geom_point
 In this plot each milk sample from the grana consortium is represented with a red dot. The four non-grana milk are reported as blue labels. A few considerations:
 
 * the milk samples are highly divided in two clusters, amplifying the general structure already seen in alpha diversity analysis
-* the non-grana "Na" sample is separated from the other three, as already suspected in the alpha diversity analysis
+* the non-grana "Na" sample is separated from the other three, in contrast to what appeared from the alpha diversity (where the "Sicilia" sample was very different)
 
 ### By province
 ```{r beta by prov, echo=FALSE, include=TRUE, eval=TRUE}
