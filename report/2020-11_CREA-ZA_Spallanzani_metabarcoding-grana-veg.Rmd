@@ -24,11 +24,29 @@ library(reshape2)
 xfun::pkg_load2(c('base64enc', 'htmltools', 'mime'))
 
 source('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/script/data_manager.R')
-infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20200706/'
-delivery_20200706 = load_all_OTU_files(infolder)
-infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20201009/'
-delivery_20201009 = load_all_OTU_files(infolder)
-raw_OTUs = c(delivery_20200706, delivery_20201009)
+
+#old world DB, with plants from all over the world
+if (FALSE){
+  infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20200706/'
+  delivery_20200706 = load_all_OTU_files(infolder)
+  infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20201009/'
+  delivery_20201009 = load_all_OTU_files(infolder)
+  raw_OTUs = c(delivery_20200706, delivery_20201009)
+}
+
+
+#hand picked DB with Grana Padano + Italian plants, first iteration (problem with soy)
+if (FALSE){
+infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210224/custom_db/up_to_200kb/'
+raw_OTUs = load_all_OTU_files(infolder)
+}
+
+#hand picked DB with Grana Padano + Italian plants, second iteration
+if (TRUE){
+infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210308/custom_db/up_to_10kb/'
+infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210308/custom_db/up_to_200kb/'
+raw_OTUs = load_all_OTU_files(infolder)
+}
 
 ```
 
@@ -66,10 +84,15 @@ To highlight changes use
 * 2020-11-17 - added heatmaps for frequencies at various taxonomic levels
 * 2020-11-30 - added diversity analysis, alpha
 * 2020-12-01 - added genus level for control samples, added reference to duplicate samples notes
+* 2020-12-07 - added beta diversity, rarefaction curves, open question about diary homogeneity
+* 2021-02-16 - added summary for bioinformatics analysis (in Italian)
+* 2021-02-28 - started rewriting the whole report using the new, local database
+* 2021-03-10 - started rewriting the whole report using the new, local database (second iteration)
+* 2021-03-11 - moved from up_to_10k to up_to_200k
 
 # Aim
 
-Metabarcoding analysis on Grana Padano milk, focusing on vegetable presence.
+Metabarcoding analysis on Grana Padano milk, focusing on vegetable presence. Plant sequences are restricted to a hand picked database containing plants permitted by the Grana Padano consortium rules, plus a selection of Italian flora.
 
 # Available samples
 
@@ -82,7 +105,7 @@ samples[samples$province == '', 'province'] = '-'
 
 ## Notes on samples
 
-Here's a piece of correspondence with Anna and Rossana, for future reference:
+Here's an exchange with Anna and Rossana, for future reference:
 
 ---
 
@@ -91,7 +114,27 @@ Here's a piece of correspondence with Anna and Rossana, for future reference:
   * 21 stesso campione di latte ma estratto con scala small (cioè men volume per un tentativo iniziale di miniaturizzare)
 * campione  id_sample  9 e 22 (ID_lab:387): stesso campione di latte ma estratto con scala small (cioè men volume per un tentativo iniziale di miniaturizzare)
 
+## Notes on the custom database
 
+Here's an exchange with Slobodanka from IGA, for future reference:
+
+---
+
+Abbiamo interogato due db, quella con le sequenze di lunghezza massima di 10kb (up_to_10kb) e quella che contiene anche interi cloroplasti (up_to_200kb).
+
+Ecco i dettagli sulla creazione del db up_to_200kb:
+
+Lista originale (una volta rimosse le due celle vuote): rbcL_database_20210303.list.txt.orig
+
+Ottenuta dal cliente una lista di 1938 accessioni da scaricare e da usare come db
+
+Dopo aver epurate le accessioni con due o più copie siamo scesi a 1834 accessioni
+
+Scaricate le sequenze con lo script Perl getSeqEMBL.pl oppure manualmente, a seconda delle diverse accessioni
+
+Tolta l'accessione PQIB00000000.2 che è un assembly intero (con 1306 sequenze) e tenuta dalla lista l'accessione PQIB02001306.1 che è uno dei contig sopra
+
+Sono state poi filtrate le sequenze più lunghe di 200 e 10 kb. Rimaniamo con 1797 e 1426 sequenze, rispettivamente
 ## By type
 
 ```{r echo=FALSE, include=TRUE}
@@ -259,7 +302,7 @@ DT::datatable(df)
 ```
 
 This table still is quite usable, but shows a trend: the number of unassigned entries grows when we go deeper into the
-taxonomy tree. We already have about 8% of unassigned reads for GT and N. Going down to **genus** level:
+taxonomy tree. Going down to **genus** level:
 
 ```{r echo=FALSE, include=TRUE}
 level = 'genus'
@@ -274,8 +317,6 @@ df = data.frame(t(OTU_ctrl$OTU_rel_screen))
 colnames(df) = OTU_ctrl$meta$Id_Lab
 DT::datatable(df)
 ```
-
-
 
 And to **species** level:
 
@@ -347,7 +388,6 @@ I think I need to check with Slobodanka again, at least to confirm that this is 
 
 # Milk, heatmaps
 
-
 ```{r echo=FALSE, include=TRUE}
 #declaring the breaks and labels for counting UN fraction at each taxonomic level
 UN_breaks = c(0, 0.25, 0.50, 0.75, 0.8, 0.85, 0.9, 0.95, 1)
@@ -374,9 +414,7 @@ h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance=0.01)
 print(h$gg)
 ```
 
-At Phylum level 100% of the reads are Streptophyta, with the single exception of sample ID1707-1, which is 100% unclassified. This sample will be removed from next analyses.
-
-Taking a look at the distribution of UN fractions:
+At Phylum level 100% of the reads are Streptophyta. Taking a look at the distribution of UN fractions:
 
 ```{r echo=FALSE, include=TRUE}
 #counting UN fractions
@@ -473,7 +511,7 @@ There are many ways to quantify complexity with the aim of comparing communities
 
 Common alpha diversity statistics include Shannon diversity, which measures how difficult it is to predict the identity of a randomly chosen organism inside a sample; and Simpson diversity, which represents the probability that two randomly chosen organisms are the same species.
 
-Beta diversity is a way to quantify the differences between two communities. There are several possible metrics available, the two more commonly used being *Bray–Curtis* beta diversity and *Weighted Unifrac* beta diversity. [**CITATION NEEDED**]. Given that it consists of a series of pair-wise comparisons between samples, beta diversity takes naturally the shape of a triangular matrix. An helpful way to represent it post Multi Dimensional Scaling, so that the two most meaningful dimensions are plotted.
+Beta diversity is a way to quantify the differences between two communities. There are several possible metrics available, the two more commonly used being *Bray–Curtis* beta diversity and *Weighted Unifrac* beta diversity. [**CITATION NEEDED**]. Given that it consists of a series of pair-wise comparisons between samples, beta diversity takes naturally the shape of a triangular matrix. In is thus common to represent beta diversity after doing Multi Dimensional Scaling, so that the two most meaningful dimensions are plotted and cluster could emerge (if present).
 
 All diversity statistics were computed using the R package *vegan* [Oksanen et al., 2019]
 
@@ -505,13 +543,13 @@ for (level in levels){
     type = OTU_milk$meta$type, 
     province = OTU_milk$meta$province, 
     sample = rownames(OTU_milk$meta),
-    level = level
+    level = level, 
+    month = OTU_milk$meta$MESE
   ))
-
 }
 
 #moving to long format, for ggplot
-alpha_long = melt(alpha, id.vars = c('sample', 'type', 'level', 'province'), variable.name = 'alpha')
+alpha_long = melt(alpha, id.vars = c('sample', 'type', 'level', 'province', 'month'), variable.name = 'alpha')
 ```
 
 ## Alpha diversity - grana vs. non grana
@@ -521,6 +559,7 @@ p = ggplot(alpha_long, aes(x=alpha, y=value, fill=type)) + geom_boxplot() +  fac
   ggtitle('Alpha diversity: grana vs. non-grana')
 print(p)
 ```
+
 We can formally verify the consistency of this trend via a statistical test. Unfortunately we cannot use the classical Student's T test because the data are not normal (verified via Shapiro test for normality, data not reported). We must thus use the Wilcoxon rank sum test. The next table reports the p-values (alternative hypothesis: diversity are significantly different between grana and non-grana):
 
 ```{r, echo=FALSE, include=TRUE}
@@ -547,14 +586,49 @@ for (l in levels){
 kable(wil)
 ```
 
-Unfortunately, it appears that there is no statistically significant difference (all p-values are greater than 0.05). This is heavily influenced by one single non-grana sample ([NON-GRANA]_Na_ID1557-15) which has a very high diversity. E.g. for Shannon index at species level we have:
+Unfortunately, it appears that there is no statistically significant difference (all p-values are greater than 0.05).
+
+This is heavily influenced by one single non-grana sample ([NON-GRANA]_sicilia_ID1701-25) which has a very high diversity. E.g. for Shannon index at species level we have:
 
 ```{r, echo=FALSE, include=TRUE}
 tmp = subset(alpha_long, level == 'species' & alpha == 'Shannon' & type == 'non-grana')
 kable(tmp)
 ```
 
-With a Shannon alpha diversity of 1.468 compared to the other three all being lower than 0.5, the "Na" sample is able to drive a lot of the statistical test.
+With a Shannon alpha diversity of 0.673 (more than five times higher than the second one, the Na sample), the "Sicilia" sample is able to drive a lot of the statistical test.
+
+This trend is present also in the "grana" samples. In fact if we take a look at the density distribution (similar to a traditional histogram) of the Shannon alpha diversity we see:
+
+```{r, echo=FALSE, include=TRUE}
+p = ggplot(subset(alpha_long, alpha == 'Shannon'), aes(x=value, fill=type)) + geom_density(alpha=0.4) +  facet_wrap(~level, nrow = 1) + 
+  theme(legend.position = 'bottom', legend.title = element_blank(), axis.title = element_blank()) +
+  ggtitle('Shannon alpha density: grana vs. non-grana')
+print(p)
+```
+
+It appears clear that:
+
+* all samples are clearly non-normal. In fact they seem to be bimodal, or at least the sum of two distributions, one with lower and one with higher average diversity
+* this bimodal trend is exacerbated for non-grana at species level, but with only four samples is hard to get any meaningful conclusion
+* same results with Simpson diversity, not reported
+
+The bimodal trend is actually intrinsic to the data. Even samples from the same dairy show it, e.g. for milk source "CN911":
+
+```{r, echo=FALSE, include=TRUE}
+tmp = subset(alpha_long, grepl(alpha_long$sample, pattern = 'CN911') & alpha == 'Shannon' & level == 'species')
+kable(tmp, row.names = FALSE)
+```
+
+Or milk source "VI611":
+
+```{r, echo=FALSE, include=TRUE}
+tmp = subset(alpha_long, grepl(alpha_long$sample, pattern = 'VI611') & alpha == 'Shannon' & level == 'species')
+kable(tmp, row.names = FALSE)
+```
+
+### Open question: are diary sources uniform?
+
+When I see data coming from a single diary (e.g. CN911) does it mean that the milk was produced **in the same farm**?
 
 ## Alpha diversity, provinces
 ```{r, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
@@ -563,8 +637,6 @@ p = ggplot(subset(alpha_long, province != '-'), aes(x=alpha, y=value, fill=provi
   scale_fill_discrete(guide = guide_legend(nrow = 1, title = NULL) ) +
   ggtitle('Alpha diversity: provinces')
 print(p)
-
-
 ```
 
 Given that we have multiple groups (i.e. multiple provinces) we can perform an analysis of variance (ANOVA), which will tell if there are any statistically significant differences between the groups. The p-values are reported in the following table:
@@ -591,67 +663,120 @@ for (l in levels){
 kable(ano)
 ```
 
-It appears clear that the deeper we go into the taxonomic tree the more significant the differences between provinces are. Moreover, Simpson test gives, in general, lower p-values, meaning that this metric is able to better intercept and summarize the existing differences among our groups.
+What is apparent from the plot is confirmed from the statistical analysis: non significant differences can be found at this stage.
 
-## Rarefaction curve
+## Rarefaction curves
 
 The following plot shows the rarefaction curves, where each line represents a sample. This plot links the amount of detected species as a function of the number of reads. Intuitively, if the reads are too few not all species will be detected. But after a certain point more reads are not useful because no more species are detected. Labels for samples are not reported to avoid plot overcrowding, but could be put back if required.
 
-```{r, echo=FALSE, eval=TRUE}
+```{r rarefaction curves, echo=FALSE, eval=TRUE}
 level = 'species'
 
 #building the OTU table
 OTU_milk = build_OTU_table(raw_OTUs, level) 
 
-min_reads = min(rowSums(OTU_milk$OTU))
-cur = rarecurve(OTU_milk$OTU, step = 1, col = "blue", label = FALSE, cex = 0.6)
-abline(v=min_reads)
+#subset to non-control and remove bad sample
+sel = OTU_milk$meta$type != 'ctrl' 
+OTU_milk = filter_OTU(OTU_milk, sel)
+
+min_reads = min(rowSums(OTU_milk$OTU_noUN))
+median_reads = median(rowSums(OTU_milk$OTU_noUN))
+cur = rarecurve(OTU_milk$OTU_noUN, step = 1, col = "blue", label = FALSE, cex = 0.6)
+abline(v=min_reads, col='red')
+abline(v=median_reads)
+```
+Zooming a bit:
+
+```{r rarefaction curves zoomed, echo=FALSE, eval=TRUE}
+cur = rarecurve(OTU_milk$OTU_noUN, step = 1, col = "blue", label = FALSE, cex = 0.6, xlim=c(0, 10000))
+abline(v=min_reads, col='red')
+abline(v=median_reads)
 ```
 
-The plot clearly shows that all samples reached stability.
+The plot is a bit problematic. Each blue line represents a sample. As the number of reads grows, the number of species found in each sample grows as well, but up to a point. In fact, the lines are expected to saturate and become flat, since each sample contains a certain amount of species.
+
+Some lines take a very long time to reach saturation, with the slowest one requiring ~7000 reads before becoming horizontal, and a couple of other lines requiring ~3000 reads. For reference, the black vertical line is the *minimum* number of reads found in any samples, and the red vertical line is the *median* number of reads. 
+
+Unfortunately, sixteen lines stop before 3000 reads and thirty-three before 7000, as reported in the following table (note: we are talking about assigned reads, i.e. we are not counting unassigned, probably bovine reads):
+
+```{r rarefaction stats, echo=FALSE, eval=TRUE}
+binned_reads = data.frame(
+  threshold = c(250, 500, 750, 1000, 2000, 3000, 7000, 10000, 13000)
+)
+x = rowSums(OTU_milk$OTU_noUN)
+
+for (i in 1:nrow(binned_reads)){
+  binned_reads[i, 'samples'] = sum(x < binned_reads[i, 'threshold'])
+}
+
+kable(binned_reads)
+```
+
+The conclusion is that a non negligible fraction of the samples (a third? two thirds?) could have used more reads.
 
 ## Beta diversity
 
-[TODO]
-```{r compute beta, echo=FALSE, include=FALSE, eval=FALSE}
-#single level
+I've introduced the concept of beta diversity at the beginning of this section. For simplicity all shown data are at "species" level, and using the "Bray-Curtis" metric. I found little difference using other parameters, however.
+
+
+```{r compute beta, echo=FALSE, include=FALSE, eval=TRUE}
+level = 'species'
+
+#building the OTU table
+OTU_milk = build_OTU_table(raw_OTUs, level) 
+
+#subset to non-control and remove bad sample
+sel = OTU_milk$meta$type != 'ctrl' 
+OTU_milk = filter_OTU(OTU_milk, sel)
+
+#building the beta distribution matrix, then MDS
 beta_dist = vegdist(OTU_milk$OTU_noUN, index = "bray")  
-mds <- metaMDS(beta_dist)
+mds <- metaMDS(beta_dist, try = 100, trymax = 100, trace = 0)
+
+#building a usable dataframe
 mds_data <- as.data.frame(mds$points)
-
 mds_data$code <- rownames(mds_data)
-mds_data <- dplyr::left_join(mds_data, OTU_milk$meta)
+mds_data <- dplyr::left_join(mds_data, OTU_milk$meta, by = "code")
+mds_data$ccf = grepl(mds_data$Id_Lab, pattern = 'ccf')
 
-library(ggplot2)
-ggplot(mds_data, aes(x = MDS1, y = MDS2, color = type)) +
-  geom_point()
-ggplot(subset(mds_data, province!= '-'), aes(x = MDS1, y = MDS2, color = province, shape=province)) +
-  geom_point()
-
-#multi levels
-levels = c('family', 'genus', 'species')
-
-beta = NULL
-
-for (level in levels){
-  #building the OTU table
-  OTU_milk = build_OTU_table(raw_OTUs, level) 
-  
-  #subset to non-control and remove bad sample
-  sel = OTU_milk$meta$type != 'ctrl' 
-  OTU_milk = filter_OTU(OTU_milk, sel)
-  
-  beta_dist = vegdist(OTU_milk$OTU_noUN,
-                     index = "bray")  
-
-}
-
+#custom shapes
+shapes_prov = c(BS=17,  CN=18, CR=19, PC=0, TN=1, VI=2, VR=3)
 ```
 
+### By type, grana vs. non grana
+```{r beta by type, echo=FALSE, include=TRUE, eval=TRUE, warning=FALSE}
+#building a column for labels
+mds_data$labs = mds_data$Id_Lab
+mds_data[mds_data$type == 'grana', 'labs'] = NA
 
+ggplot(mds_data, aes(x = MDS1, y = MDS2, color = type, label=labs)) + geom_point() + geom_label() + theme(legend.position = 'none')
+```
 
-## Beta dispersion
-TODO
+In this plot each milk sample from the grana consortium is represented with a red dot. The four non-grana milk are reported as blue labels. A few considerations:
+
+* the milk samples are highly divided in two clusters, amplifying the general structure already seen in alpha diversity analysis
+* the non-grana "Na" sample is separated from the other three, in contrast to what appeared from the alpha diversity (where the "Sicilia" sample was very different)
+
+### By province
+```{r beta by prov, echo=FALSE, include=TRUE, eval=TRUE}
+ggplot(subset(mds_data, province!= '-'), aes(x = MDS1, y = MDS2, color = province, shape=province)) +
+  scale_shape_manual(values = shapes_prov) +
+  geom_point()
+```
+
+The data are exactly the same as in the previous plot, but here I highlight the geographical source. Unfortunately, not many patterns are visible.
+
+### By ccf
+
+I plot again the same data, but highlighting extraction method - it was very easy to do :)
+
+```{r beta by ccf, echo=FALSE, include=TRUE, eval=TRUE}
+ggplot(mds_data, aes(x = MDS1, y = MDS2, color = ccf)) + geom_point()
+```
+
+### By sampling date
+
+I've investigated the sampling date, too, to see if it could explain the visible clusters, with little succes. Data not reported for brevity.
 
 # Taxon abundance 
 [TODO]
@@ -663,7 +788,18 @@ TODO
 
 ```
 
-# Clustering
-[TODO] PCA, MDS...
 
+# Riassunto per relazione tecnica
 
+Il punto di partenza per l'analisi bioinformatica è stato il dataset di numerosità di unità tassonomiche (OTU -  operational taxonomic unit), prodotto da IGA Technology Services e riportante, per ciascuno dei campioni analizzati, la numerosità di frammenti di DNA (reads) afferibili a distinti organismi. L'analisi dell'istituto IGA si è concentratata sul DNA vegetale e ha utilizzato come riferimento un database contenente le sequenze nucleotidiche di 181mila specie vegetali. Laddove il DNA ritrovato nei campioni di latte non corrisponde a nessun elemento del database vegetale la OTU è stata classificata come non identificata. Analisi successive ci hanno portato a stimare che il 63.4% del DNA estratto è bovino, proveniente cioè dalle vacche che hanno prodotto il latte in analisi.
+
+Per compensare la natura intrinsecamente frammentaria delle informazioni ottenute sono stati implementati dei filtri che eliminassero i dati con un basso livello di affidabilità. A tal fine tutte le OTU con numerosità minore di cinque reads sono state scartate.
+
+Per procedere con le analisi ogni campione è stato quindi considerato come un ecosistema isolato, permettendo così di utilizzare gli strumenti statistici sviluppati in ambito ecologico. I due approcci metodologici principali mirano a fornire misure oggettive e comparabili della diversità biologica presente in ciacuna comunità e prendono il nome di parametri di diversità alfa e beta (alpha e beta diversity). 
+La diversità alfa misura la ricchezza biologica all'interno di ogni singolo campioni, e si basa sul numero el'abbondanza relativa di "individui" (nel nostro caso, abbondanza di OTU) al livello tassonomico scelto per l'analisi. Anche la diversità beta fa uso delle informazioni sulla ricchezza biologica, ma misura la variazione tra comunità. In altre parole, la diversità alfa descrive un singolo campione, mentre la diversità beta confronta due campioni. 
+
+La diversità alfa può essere misurata utilizzando diversi coefficienti statistici. Per questa analisi abbiamo usato due tra gli indici più comuni, l'indice di Shannon e l'indice di Simpson. Per la diversità beta abbiamo usato l'indice Bray-Curtis. Dato che la diversità beta confronta coppie di campioni è spesso utile visualizzare i risultati dopo averne risotto la dimensionalità con una tecnica come il Multi Dimensional Scaling.
+
+## Risultati
+
+L'analisi della diversità evidenzia la presenza di due sottogruppi, trasversali alla divisione grana-non grana, di campioni con alta e bassa ricchezza microbiologica [VEDI FIGURA DENSITÀ]. Equivalentemente l'analisi della diversità beta indica una netta separazione dei campioni in due cluster. [VEDI FIGURA BETA]

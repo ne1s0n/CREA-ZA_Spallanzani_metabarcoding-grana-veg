@@ -29,7 +29,7 @@ load_all_OTU_files = function(infolder){
   for (f in list.files(path = infolder, pattern = 'derep.nochim.centroids_table.krona.tsv', full.names = TRUE, recursive = TRUE)){
     #recovering the sample name from filename, we have a couple of options
     sample_name = basename(f)
-    sample_name = gsub(sample_name, pattern = '-Rub.erne_maxee*', replacement = '')
+    sample_name = gsub(sample_name, pattern = '-Rub.*', replacement = '')
     sample_name = gsub(sample_name, pattern = '.erne_maxee.*', replacement = '')
     sample_name = gsub(sample_name, pattern = '.derep.nochim.*', replacement = '')
     
