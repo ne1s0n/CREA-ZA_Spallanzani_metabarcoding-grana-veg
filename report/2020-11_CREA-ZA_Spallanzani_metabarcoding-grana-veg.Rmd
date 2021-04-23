@@ -778,6 +778,30 @@ ggplot(mds_data, aes(x = MDS1, y = MDS2, color = ccf)) + geom_point()
 
 I've investigated the sampling date, too, to see if it could explain the visible clusters, with little succes. Data not reported for brevity.
 
+### Fully labelled
+
+```{r, echo=FALSE, include=TRUE, eval=TRUE, warning=FALSE}
+#building a column for labels
+mds_data$labs = mds_data$Id_Lab
+
+p = ggplot(subset(mds_data, type == 'grana'), 
+       aes(x = MDS1, y = MDS2, color = 'black', label=labs)) + 
+  geom_point() + geom_label(color = 'black') + theme(legend.position = 'none')
+
+p
+
+```
+
+For better visualization, here's a wider version:
+
+```{r, echo=FALSE, include=TRUE, eval=TRUE, warning=FALSE}
+#saving a copy of the plot, wider so that everything is readable
+outimg = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/report/beta_labelled.png'
+ggsave(outimg, p, width = 30, height = 25)
+xfun::embed_file(outimg)
+```
+
+
 # Taxon abundance 
 [TODO]
 ```{r, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
