@@ -27,6 +27,7 @@ source('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/script/data_manag
 
 #old world DB, with plants from all over the world
 if (FALSE){
+  title = 'old world DB, with plants from all over the world, delivery_20200706 and delivery_20201009'
   infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20200706/'
   delivery_20200706 = load_all_OTU_files(infolder)
   infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20201009/'
@@ -34,20 +35,27 @@ if (FALSE){
   raw_OTUs = c(delivery_20200706, delivery_20201009)
 }
 
-
 #hand picked DB with Grana Padano + Italian plants, first iteration (problem with soy)
 if (FALSE){
+  title = 'Hand picked DB with Grana Padano + Italian plants, first iteration (problem with soy), third iteration, delivery_20210224'
 infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210224/custom_db/up_to_200kb/'
 raw_OTUs = load_all_OTU_files(infolder)
 }
 
 #hand picked DB with Grana Padano + Italian plants, second iteration
-if (TRUE){
+if (FALSE){
+  title = 'Hand picked DB with Grana Padano + Italian plants, third iteration, delivery_20210308'
 infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210308/custom_db/up_to_10kb/'
 infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210308/custom_db/up_to_200kb/'
 raw_OTUs = load_all_OTU_files(infolder)
 }
 
+#hand picked DB with Grana Padano + Italian plants, third iteration
+if (TRUE){
+  title = 'Hand picked DB with Grana Padano + Italian plants, third iteration, delivery_20210429'
+infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210429/'
+raw_OTUs = load_all_OTU_files(infolder)
+}
 ```
 
 ```{r cheatsheet, echo=FALSE, include=FALSE, eval=FALSE}
@@ -89,10 +97,17 @@ To highlight changes use
 * 2021-02-28 - started rewriting the whole report using the new, local database
 * 2021-03-10 - started rewriting the whole report using the new, local database (second iteration)
 * 2021-03-11 - moved from up_to_10k to up_to_200k
+* 2021-04-30 - new iteration of database, the third one
 
 # Aim
 
 Metabarcoding analysis on Grana Padano milk, focusing on vegetable presence. Plant sequences are restricted to a hand picked database containing plants permitted by the Grana Padano consortium rules, plus a selection of Italian flora.
+
+# Current database
+
+```{r echo=FALSE, include=TRUE}
+writeLines(title)
+```
 
 # Available samples
 
