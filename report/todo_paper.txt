@@ -1,0 +1,7 @@
+
+- fine luglio
+- check data description
+- rifare plot beta div, con non grana come provincia esterna (+ formattazione da paper)
+- fare heatmap medie per provincia (famiglia/genere/specie)
+- includere tabella delle alfa diversity completa nel report
+- indagare la parte UN dei mangimi

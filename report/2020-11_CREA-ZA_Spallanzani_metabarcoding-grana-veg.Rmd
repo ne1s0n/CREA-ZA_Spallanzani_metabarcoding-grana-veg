@@ -126,7 +126,7 @@ Here's an exchange with Anna and Rossana, for future reference:
 
 * il campione con id_sample 10, 17 e 21 (ID_lab:177), è sempre lo stesso campione ma:
   * 10 e 17 due aliquote (per motivi di metodo estrattivo) della stessa estrazione ma con curve al nanodrop diverse;
-  * 21 stesso campione di latte ma estratto con scala small (cioè men volume per un tentativo iniziale di miniaturizzare)
+  * 21 stesso campione di latte ma estratto con scala small (cioè meno volume per un tentativo iniziale di miniaturizzare)
 * campione  id_sample  9 e 22 (ID_lab:387): stesso campione di latte ma estratto con scala small (cioè men volume per un tentativo iniziale di miniaturizzare)
 
 ## Notes on the custom database
@@ -600,19 +600,20 @@ for (l in levels){
 
 kable(wil)
 ```
+It appears that the groups are statistically significant (p<0.05) only at family level.
 
-Unfortunately, it appears that there is no statistically significant difference (all p-values are greater than 0.05).
+<!-- Unfortunately, it appears that there is no statistically significant difference (all p-values are greater than 0.05).
 
-This is heavily influenced by one single non-grana sample ([NON-GRANA]_sicilia_ID1701-25) which has a very high diversity. E.g. for Shannon index at species level we have:
+This is heavily influenced by one single non-grana sample ([NON-GRANA]_sicilia_ID1701-25) which has a very high diversity. E.g. for Shannon index at species level we have: -->
 
-```{r, echo=FALSE, include=TRUE}
+```{r, echo=FALSE, include=FALSE}
 tmp = subset(alpha_long, level == 'species' & alpha == 'Shannon' & type == 'non-grana')
 kable(tmp)
 ```
 
-With a Shannon alpha diversity of 0.673 (more than five times higher than the second one, the Na sample), the "Sicilia" sample is able to drive a lot of the statistical test.
+<!--With a Shannon alpha diversity of 0.673 (more than five times higher than the second one, the Na sample), the "Sicilia" sample is able to drive a lot of the statistical test.
 
-This trend is present also in the "grana" samples. In fact if we take a look at the density distribution (similar to a traditional histogram) of the Shannon alpha diversity we see:
+This trend is present also in the "grana" samples. In fact if we take a look at the density distribution (similar to a traditional histogram) of the Shannon alpha diversity we see: -->
 
 ```{r, echo=FALSE, include=TRUE}
 p = ggplot(subset(alpha_long, alpha == 'Shannon'), aes(x=value, fill=type)) + geom_density(alpha=0.4) +  facet_wrap(~level, nrow = 1) + 
@@ -627,16 +628,16 @@ It appears clear that:
 * this bimodal trend is exacerbated for non-grana at species level, but with only four samples is hard to get any meaningful conclusion
 * same results with Simpson diversity, not reported
 
-The bimodal trend is actually intrinsic to the data. Even samples from the same dairy show it, e.g. for milk source "CN911":
+<!-- The bimodal trend is actually intrinsic to the data. Even samples from the same dairy show it, e.g. for milk source "CN911": -->
 
-```{r, echo=FALSE, include=TRUE}
+```{r, echo=FALSE, include=FALSE}
 tmp = subset(alpha_long, grepl(alpha_long$sample, pattern = 'CN911') & alpha == 'Shannon' & level == 'species')
 kable(tmp, row.names = FALSE)
 ```
 
-Or milk source "VI611":
+<!--Or milk source "VI611":-->
 
-```{r, echo=FALSE, include=TRUE}
+```{r, echo=FALSE, include=FALSE}
 tmp = subset(alpha_long, grepl(alpha_long$sample, pattern = 'VI611') & alpha == 'Shannon' & level == 'species')
 kable(tmp, row.names = FALSE)
 ```
@@ -678,7 +679,7 @@ for (l in levels){
 kable(ano)
 ```
 
-What is apparent from the plot is confirmed from the statistical analysis: non significant differences can be found at this stage.
+What is apparent from the plot is confirmed from the statistical analysis: very little statistical difference at this stage (all p-values > 0.05).
 
 ## Rarefaction curves
 
