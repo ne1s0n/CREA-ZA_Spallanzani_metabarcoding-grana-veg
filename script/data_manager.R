@@ -138,11 +138,16 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_centroid_read
 
 load_sample_codes = function(){
   samples = read.csv('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/Transcodifica Campioni_cleaned.csv', stringsAsFactors = FALSE, row.names = 1)
-  samples = samples[,c("Id_Lab", "Label_IGA", "type", "caseificio", "MESE", "data_prelievo")]
+  samples = samples[,c("Id_Lab", "Label_IGA", "type", "caseificio", "MESE", "data_prelievo", "Insilato")]
+  
+  #province cleanup
   samples$province = sapply(samples$caseificio, FUN = substr, start=1, stop=2)
   samples[samples$province == '', 'province'] = '-'
   samples$Label_IGA = gsub(samples$Label_IGA, pattern = '_', replacement = '-')
   rownames(samples) = samples$Label_IGA
+  
+  #silage cleanup
+  
   return(samples)
 }
 
