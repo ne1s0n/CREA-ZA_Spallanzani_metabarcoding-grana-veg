@@ -53,8 +53,9 @@ raw_OTUs = load_all_OTU_files(infolder)
 #hand picked DB with Grana Padano + Italian plants, third iteration
 if (TRUE){
   title = 'Hand picked DB with Grana Padano + Italian plants, third iteration, delivery_20210429'
-infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210429/'
-raw_OTUs = load_all_OTU_files(infolder)
+  infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210429/'
+  infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_2'
+  raw_OTUs = load_all_OTU_files(infolder)
 }
 ```
 
@@ -97,6 +98,7 @@ To highlight changes use
 * 2021-02-28 - started rewriting the whole report using the new, local database
 * 2021-03-10 - started rewriting the whole report using the new, local database (second iteration)
 * 2021-03-11 - moved from up_to_10k to up_to_200k
+* 2021-04-07 - added beta plot by silage
 * 2021-04-30 - new iteration of database, the third one
 
 # Aim
@@ -112,10 +114,7 @@ writeLines(title)
 # Available samples
 
 ```{r echo=FALSE, include=TRUE}
-samples = read.csv('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/Transcodifica Campioni_cleaned.csv', stringsAsFactors = FALSE, row.names = 1)
-samples = samples[,c("Id_Lab", "type", "caseificio", "MESE", "data_prelievo")]
-samples$province = sapply(samples$caseificio, FUN = substr, start=1, stop=2)
-samples[samples$province == '', 'province'] = '-'
+samples = load_sample_codes()
 ```
 
 ## Notes on samples
@@ -794,6 +793,13 @@ ggplot(mds_data, aes(x = MDS1, y = MDS2, color = ccf)) + geom_point()
 
 I've investigated the sampling date, too, to see if it could explain the visible clusters, with little succes. Data not reported for brevity.
 
+### By use of silage
+
+```{r beta by silage, echo=FALSE, include=TRUE, eval=TRUE}
+ggplot(mds_data, aes(x = MDS1, y = MDS2, color = Insilato)) + geom_point()
+```
+All samples with no silage are from TN province. The rightmost sample (the only one in the right cluster) is marked TN342_3000_ID1557-11.
+
 ### Fully labelled
 
 ```{r, echo=FALSE, include=TRUE, eval=TRUE, warning=FALSE}
@@ -816,7 +822,6 @@ outimg = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/report/beta_lab
 ggsave(outimg, p, width = 30, height = 25)
 xfun::embed_file(outimg)
 ```
-
 
 # Taxon abundance 
 [TODO]
