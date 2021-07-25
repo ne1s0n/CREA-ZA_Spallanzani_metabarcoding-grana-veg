@@ -125,7 +125,8 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_centroid_read
   OTU_rel_noUN = OTU_rel_noUN[neworder,, drop=FALSE]
   OTU_rel_screen_noUN = OTU_rel_screen_noUN[neworder,, drop=FALSE]
   
-  return(list(
+  #building the final object
+  res = list(
     OTU = OTU,
     OTU_rel = OTU_rel,
     OTU_rel_screen = OTU_rel_screen,
@@ -133,7 +134,12 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_centroid_read
     OTU_noUN = OTU_noUN,
     OTU_rel_noUN = OTU_rel_noUN,
     OTU_rel_screen_noUN = OTU_rel_screen_noUN
-  ))
+  )
+  
+  #updating relative incidence
+  res$avg_rel_screen_noUN = compute_avg_OTU(res)
+  
+  return(res)
 }
 
 load_sample_codes = function(){
@@ -149,6 +155,13 @@ load_sample_codes = function(){
   #silage cleanup
   
   return(samples)
+}
+
+#computes average OTU incidence (on relative, scree, noUN)
+compute_avg_OTU = function(OTU){
+  a = colMeans(OTU$OTU_rel_screen_noUN, na.rm = TRUE)
+  a = a[order(a, decreasing = TRUE)]
+  return(a)
 }
 
 filter_OTU = function(OTU, sample_selector){
@@ -170,6 +183,9 @@ filter_OTU = function(OTU, sample_selector){
   OTU$OTU_noUN     = OTU$OTU_noUN[,!empty_col, drop=FALSE]
   OTU$OTU_rel_noUN = OTU$OTU_rel_noUN[,!empty_col, drop=FALSE]
   OTU$OTU_rel_screen_noUN = OTU$OTU_rel_screen_noUN[,!empty_col, drop=FALSE]
+  
+  #updating relative incidence
+  OTU$avg_rel_screen_noUN = compute_avg_OTU(OTU)
   
   #done
   return(OTU)

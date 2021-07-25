@@ -43,7 +43,7 @@ raw_OTUs = load_all_OTU_files(infolder)
 }
 
 #hand picked DB with Grana Padano + Italian plants, second iteration
-if (FALSE){
+if (TRUE){
   title = 'Hand picked DB with Grana Padano + Italian plants, third iteration, delivery_20210308'
 infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210308/custom_db/up_to_10kb/'
 infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210308/custom_db/up_to_200kb/'
@@ -51,7 +51,7 @@ raw_OTUs = load_all_OTU_files(infolder)
 }
 
 #hand picked DB with Grana Padano + Italian plants, third iteration
-if (TRUE){
+if (FALSE){
   title = 'Hand picked DB with Grana Padano + Italian plants, third iteration, delivery_20210429'
   infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210429/'
   infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_2'
@@ -399,6 +399,55 @@ I think I need to check with Slobodanka again, at least to confirm that this is 
 
 **ANSWER**: it appears that the reads levels are acceptable, she suggests subsampling/oversampling reads if we need to normalize the samples (we don't, we'll use frequencies).
 
+# Milk, OTUs
+
+With control samples:
+```{r echo=FALSE, include=TRUE}
+levels = c('clade_phylum', 'family', 'genus', 'species')
+res = NULL
+for (level in levels){
+  myOTU = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 5)
+  myOTU_nofilter = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 0)
+  res = rbind(res, data.frame(
+    level = level,
+    samples = nrow(myOTU$OTU_noUN),
+    OTUs_all = ncol(myOTU_nofilter$OTU_noUN),
+    OTUs_filter5 = ncol(myOTU$OTU_noUN),
+    OTUs_filter5_dominant = sum(apply(X = myOTU$OTU_rel_noUN, MARGIN = 2, FUN = max, na.rm = TRUE) >= 0.01),
+    mean_unassigned = mean(myOTU$OTU_rel$UN)
+  ))
+}
+kable(res)
+```
+
+Removing control samples:
+```{r echo=FALSE, include=TRUE}
+levels = c('clade_phylum', 'family', 'genus', 'species')
+res = NULL
+for (level in levels){
+  
+  #removing centroid with low reads, control samples
+  myOTU = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 5)
+  sel = myOTU$meta$type != 'ctrl'
+  myOTU = filter_OTU(myOTU, sel)
+
+  #not removing centroid with low reads, but removing control samples
+  myOTU_nofilter = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 0)
+  sel = myOTU_nofilter$meta$type != 'ctrl'
+  myOTU_nofilter = filter_OTU(myOTU_nofilter, sel)
+  
+  res = rbind(res, data.frame(
+    level = level,
+    samples = nrow(myOTU$OTU_noUN),
+    OTUs_all = ncol(myOTU_nofilter$OTU_noUN),
+    OTUs_filter5 = ncol(myOTU$OTU_noUN),
+    OTUs_filter5_dominant = sum(apply(X = myOTU$OTU_rel_noUN, MARGIN = 2, FUN = max, na.rm = TRUE) >= 0.01),
+    mean_unassigned = mean(myOTU$OTU_rel$UN)
+  ))
+}
+kable(res)
+```
+
 
 # Milk, heatmaps
 
@@ -426,9 +475,15 @@ h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance=0.01)
 
 #show the map
 print(h$gg)
+
 ```
 
-At Phylum level 100% of the reads are Streptophyta. Taking a look at the distribution of UN fractions:
+At Phylum level 100% of the reads are Streptophyta:
+```{r echo=FALSE, include=TRUE}
+kable(OTU_milk$avg_rel_screen_noUN)
+```
+
+Taking a look at the distribution of UN fractions:
 
 ```{r echo=FALSE, include=TRUE}
 #counting UN fractions
@@ -467,6 +522,12 @@ df = data.frame(
 kable(df)
 ```
 
+OTU incidence at family level:
+```{r echo=FALSE, include=TRUE}
+kable(OTU_milk$avg_rel_screen_noUN)
+```
+
+
 ## Genus
 ```{r, fig.height = 8, fig.align = "center", echo=FALSE, include=TRUE}
 level = 'genus'
@@ -493,6 +554,10 @@ df = data.frame(
 kable(df)
 ```
 
+OTU incidence at genus level:
+```{r echo=FALSE, include=TRUE}
+kable(OTU_milk$avg_rel_screen_noUN)
+```
 
 ## Species
 ```{r, fig.height = 8, fig.align = "center", echo=FALSE, include=TRUE}
@@ -517,6 +582,11 @@ df = data.frame(
   
 #showing the table
 kable(df)
+```
+
+OTU incidence at species level:
+```{r echo=FALSE, include=TRUE}
+kable(OTU_milk$avg_rel_screen_noUN)
 ```
 
 # Diversity analysis
