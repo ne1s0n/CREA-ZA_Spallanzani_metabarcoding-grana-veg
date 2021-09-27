@@ -20,6 +20,7 @@ library(DT)
 library(xfun)
 library(vegan)
 library(reshape2)
+options(scipen=999)
 
 xfun::pkg_load2(c('base64enc', 'htmltools', 'mime'))
 
@@ -798,6 +799,34 @@ kable(binned_reads)
 ```
 
 The conclusion is that a non negligible fraction of the samples (a third? two thirds?) could have used more reads.
+
+## Rarefaction curves, with UN
+
+Same as above, but including UN in the plots:
+
+```{r rarefaction curves with UN, echo=FALSE, eval=TRUE}
+level = 'species'
+
+#building the OTU table
+OTU_milk = build_OTU_table(raw_OTUs, level) 
+
+#subset to non-control and remove bad sample
+sel = OTU_milk$meta$type != 'ctrl' 
+OTU_milk = filter_OTU(OTU_milk, sel)
+
+#removing extra populous sample...
+sel = rep(TRUE, nrow(OTU_milk$OTU))
+i = which.max(rowSums(OTU_milk$OTU))
+sel[i] = FALSE
+OTU_milk = filter_OTU(OTU_milk, sel)
+
+#rarefaction
+min_reads = min(rowSums(OTU_milk$OTU))
+median_reads = median(rowSums(OTU_milk$OTU))
+cur = rarecurve(OTU_milk$OTU, step = 100, col = "blue", label = FALSE, cex = 0.6, xlim=c(0, 500000), xlab = 'Reads')
+#abline(v=min_reads, col='red')
+#abline(v=median_reads)
+```
 
 ## Beta diversity
 
