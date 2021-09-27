@@ -45,7 +45,7 @@ raw_OTUs = load_all_OTU_files(infolder)
 
 #hand picked DB with Grana Padano + Italian plants, second iteration
 if (TRUE){
-  title = 'Hand picked DB with Grana Padano + Italian plants, third iteration, delivery_20210308'
+  title = 'Hand picked DB with Grana Padano + Italian plants, second iteration, delivery_20210308'
 infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210308/custom_db/up_to_10kb/'
 infolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/data/private/delivery_20210308/custom_db/up_to_200kb/'
 raw_OTUs = load_all_OTU_files(infolder)
