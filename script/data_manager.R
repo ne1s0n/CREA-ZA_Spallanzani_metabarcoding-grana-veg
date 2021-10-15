@@ -191,7 +191,20 @@ filter_OTU = function(OTU, sample_selector){
   return(OTU)
 }
 
-prepare_heatmap = function(mat, min_abundance = 0.01){
+anonymize_samples = function(sample_names){
+  #non-grana receive a special treatment
+  grana = !grepl(pattern = 'NON-GRANA', x = sample_names)
+  
+  #a special function for changing the GP samples
+  sample_names[grana] = apply(sample_names[grana], MARGIN = 1, FUN = function(x){
+    pieces = strsplit(x, split = '_ID')[[1]]
+    return(paste(sep = '', substr(pieces[1], start = 1, stop = 2), '_ID', pieces[2]))
+  })
+  
+  return(sample_names)
+}
+
+prepare_heatmap = function(mat, min_abundance = 0.01, anonymize = FALSE){
   #removing unassigned, if present
   mat$UN = NULL
   
@@ -203,6 +216,11 @@ prepare_heatmap = function(mat, min_abundance = 0.01){
   freqsum = colSums(mat)
   mat = mat[, order(freqsum, decreasing = TRUE), drop = FALSE]
   organism_order = colnames(mat)
+  
+  #should we anonymize samples?
+  if(anonymize){
+    mat['sample'] = anonymize_samples(mat['sample'])
+  }
   
   #building a long format, for plotting
   mat_long = melt(data.frame(mat, sample = rownames(mat)), id.vars = 'sample')

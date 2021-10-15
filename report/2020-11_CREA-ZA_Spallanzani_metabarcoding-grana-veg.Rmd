@@ -472,7 +472,7 @@ sel = OTU_milk$meta$type != 'ctrl'
 OTU_milk = filter_OTU(OTU_milk, sel)
 
 #do heatmap
-h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance=0.01)
+h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance=0.01, anonymize = TRUE)
 
 #show the map
 print(h$gg)
