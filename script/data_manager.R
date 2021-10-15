@@ -40,7 +40,7 @@ load_all_OTU_files = function(infolder){
   return(res)
 }
 
-build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_centroid_reads = 5, min_sample_reads = 1000){
+build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_centroid_reads = 5, min_sample_reads = 1000, anonymize = TRUE){
   OTU = data.frame(row.names = names(raw_OTU_list))
   
   #---OTU table, absolute values
@@ -106,6 +106,11 @@ build_OTU_table = function(raw_OTU_list, level='clade_phylum', min_centroid_read
   meta$caseificio = gsub(meta$caseificio, pattern = '^$', replacement = '[NON-GRANA]')
   meta$code = paste(sep='_', meta$caseificio, meta$Id_Lab, meta$Label_IGA)
   
+  #should we anonymize samples
+  if(anonymize){
+    meta$code = anonymize_samples(meta$code)
+  }
+  
   #renaming everything
   rownames(meta) = meta$code
   rownames(OTU) = meta$code
@@ -153,6 +158,12 @@ load_sample_codes = function(){
   rownames(samples) = samples$Label_IGA
   
   #silage cleanup
+  samples$Insilato = toupper(samples$Insilato)
+  
+  #out of area cleanup
+  samples$Id_Lab = mapvalues(samples$Id_Lab, 
+                             from = c('sicilia', 'puglia', 'Na', 'montagna'), 
+                             to=c('Sicily', 'Apulia', 'Naples', 'Mountain'))
   
   return(samples)
 }
@@ -192,11 +203,11 @@ filter_OTU = function(OTU, sample_selector){
 }
 
 anonymize_samples = function(sample_names){
-  #non-grana receive a special treatment
+  #grana receive a special treatment
   grana = !grepl(pattern = 'NON-GRANA', x = sample_names)
   
   #a special function for changing the GP samples
-  sample_names[grana] = apply(sample_names[grana], MARGIN = 1, FUN = function(x){
+  sample_names[grana] = sapply(sample_names[grana], simplify = TRUE, FUN = function(x){
     pieces = strsplit(x, split = '_ID')[[1]]
     return(paste(sep = '', substr(pieces[1], start = 1, stop = 2), '_ID', pieces[2]))
   })
@@ -204,7 +215,7 @@ anonymize_samples = function(sample_names){
   return(sample_names)
 }
 
-prepare_heatmap = function(mat, min_abundance = 0.01, anonymize = FALSE){
+prepare_heatmap = function(mat, min_abundance = 0.01){
   #removing unassigned, if present
   mat$UN = NULL
   
@@ -216,11 +227,6 @@ prepare_heatmap = function(mat, min_abundance = 0.01, anonymize = FALSE){
   freqsum = colSums(mat)
   mat = mat[, order(freqsum, decreasing = TRUE), drop = FALSE]
   organism_order = colnames(mat)
-  
-  #should we anonymize samples?
-  if(anonymize){
-    mat['sample'] = anonymize_samples(mat['sample'])
-  }
   
   #building a long format, for plotting
   mat_long = melt(data.frame(mat, sample = rownames(mat)), id.vars = 'sample')
@@ -234,7 +240,7 @@ prepare_heatmap = function(mat, min_abundance = 0.01, anonymize = FALSE){
     scale_y_discrete(expand = c(0, 0)) + 
     #coord_fixed(ratio=1) + 
     theme(
-      legend.position = 'bottom',
+      legend.position = 'none',
       axis.ticks = element_blank(),
       axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size=9, face = "italic"),
       axis.text.y = element_text(hjust = 1, size=11, vjust = 0.5),

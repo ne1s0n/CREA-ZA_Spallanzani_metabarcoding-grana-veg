@@ -26,6 +26,9 @@ xfun::pkg_load2(c('base64enc', 'htmltools', 'mime'))
 
 source('~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/script/data_manager.R')
 
+#where to save figures
+figure_outfolder = '~/research/CREA-ZA_Spallanzani_metabarcoding-grana-veg/report/plots_for_paper/'
+
 #old world DB, with plants from all over the world
 if (FALSE){
   title = 'old world DB, with plants from all over the world, delivery_20200706 and delivery_20201009'
@@ -472,11 +475,10 @@ sel = OTU_milk$meta$type != 'ctrl'
 OTU_milk = filter_OTU(OTU_milk, sel)
 
 #do heatmap
-h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance=0.01, anonymize = TRUE)
+h = prepare_heatmap(mat = OTU_milk$OTU_rel_noUN, min_abundance=0.01)
 
 #show the map
 print(h$gg)
-
 ```
 
 At Phylum level 100% of the reads are Streptophyta:
@@ -509,9 +511,11 @@ OTU_milk = filter_OTU(OTU_milk, sel)
 #do heatmap
 h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance = 0.01)
 
+#saving the figure
+ggsave(filename = paste(sep='', figure_outfolder, 'heatmap_family.tiff'), plot = h$gg  + theme(axis.text.y = element_text(size = 7)), device = 'tiff', width = 1800, height = 1575, units = 'px')
+
 #show the map
 print(h$gg)
-
 
 #counting UN fractions
 df = data.frame(
@@ -541,9 +545,11 @@ OTU_milk = filter_OTU(OTU_milk, sel)
 #do heatmap
 h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance = 0.01)
 
+#saving the figure
+ggsave(filename = paste(sep='', figure_outfolder, 'heatmap_genus.tiff'), plot = h$gg + theme(axis.text.y = element_text(size = 7)), device = 'tiff', width = 1800, height = 1575, units = 'px')
+
 #show the map
 print(h$gg)
-
 
 #counting UN fractions
 df = data.frame(
@@ -571,6 +577,9 @@ OTU_milk = filter_OTU(OTU_milk, sel)
 
 #do heatmap
 h = prepare_heatmap(OTU_milk$OTU_rel_noUN, min_abundance = 0.01)
+
+#saving the figure
+ggsave(filename = paste(sep='', figure_outfolder, 'heatmap_species.tiff'), plot = h$gg + theme(axis.text.y = element_text(size = 7)), device = 'tiff', width = 1800, height = 1575, units = 'px')
 
 #show the map
 print(h$gg)
@@ -635,13 +644,25 @@ for (level in levels){
 
 #moving to long format, for ggplot
 alpha_long = melt(alpha, id.vars = c('sample', 'type', 'level', 'province', 'month'), variable.name = 'alpha')
+
+#screen names
+alpha_long$type = mapvalues(x=alpha_long$type, from=c("non-grana", "grana"), to=c("outside GP area", "GP area"))
 ```
 
 ## Alpha diversity - grana vs. non grana
 ```{r, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
 p = ggplot(alpha_long, aes(x=alpha, y=value, fill=type)) + geom_boxplot() +  facet_wrap(~level, nrow = 1) + 
-  theme(legend.position = 'bottom', legend.title = element_blank(), axis.title = element_blank()) +
-  ggtitle('Alpha diversity: grana vs. non-grana')
+  theme_bw() + scale_fill_brewer(palette="Spectral") +
+  theme(
+    legend.position = 'bottom', 
+    legend.title = element_blank(), 
+    axis.title = element_blank(), axis.text = element_text(color='black')
+  ) 
+ #+  ggtitle('Alpha diversity: inside vs. outside GP production area') 
+
+#saving the figure
+ggsave(filename = paste(sep='', figure_outfolder, 'diversity_alpha_box.tiff'), plot = p, device = 'tiff', width = 1800, height = 1575, units = 'px')
+
 print(p)
 ```
 
@@ -653,12 +674,12 @@ wil = NULL
 
 for (l in levels){
   w_sha = wilcox.test(
-    subset(alpha_long, level==l & type=='grana' & alpha == 'Shannon')$value,
-    subset(alpha_long, level==l & type=='non-grana' & alpha == 'Shannon')$value
+    subset(alpha_long, level==l & type=="GP area" & alpha == 'Shannon')$value,
+    subset(alpha_long, level==l & type=="outside GP area" & alpha == 'Shannon')$value
   )
   w_sim = wilcox.test(
-    subset(alpha_long, level==l & type=='grana' & alpha == 'Simpson')$value,
-    subset(alpha_long, level==l & type=='non-grana' & alpha == 'Simpson')$value
+    subset(alpha_long, level==l & type=="GP area" & alpha == 'Simpson')$value,
+    subset(alpha_long, level==l & type=="outside GP area" & alpha == 'Simpson')$value
   )
   wil = rbind(wil, data.frame(
     level = l,
@@ -686,9 +707,18 @@ kable(tmp)
 This trend is present also in the "grana" samples. In fact if we take a look at the density distribution (similar to a traditional histogram) of the Shannon alpha diversity we see: -->
 
 ```{r, echo=FALSE, include=TRUE}
-p = ggplot(subset(alpha_long, alpha == 'Shannon'), aes(x=value, fill=type)) + geom_density(alpha=0.4) +  facet_wrap(~level, nrow = 1) + 
-  theme(legend.position = 'bottom', legend.title = element_blank(), axis.title = element_blank()) +
-  ggtitle('Shannon alpha density: grana vs. non-grana')
+p = ggplot(subset(alpha_long, alpha == 'Shannon'), aes(x=value, fill=type)) + 
+  geom_density(alpha=0.6) + facet_wrap(~level, nrow = 1) + 
+  theme_bw() + scale_fill_manual(values=c("red", "blue")) + 
+  theme(legend.position = 'bottom', 
+        legend.title = element_blank(), 
+        axis.title = element_blank(), 
+        axis.text = element_text(color='black')
+        ) 
+
+#saving the figure
+ggsave(filename = paste(sep='', figure_outfolder, 'diversity_alpha_shannon_density.tiff'), plot = p, device = 'tiff', width = 1800, height = 1575, units = 'px')
+
 print(p)
 ```
 
@@ -719,9 +749,13 @@ When I see data coming from a single diary (e.g. CN911) does it mean that the mi
 ## Alpha diversity, provinces
 ```{r, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
 p = ggplot(subset(alpha_long, province != '-'), aes(x=alpha, y=value, fill=province)) + geom_boxplot() +  facet_wrap(~level, nrow = 1) + 
-  theme(legend.position = 'bottom', axis.title = element_blank()) +
-  scale_fill_discrete(guide = guide_legend(nrow = 1, title = NULL) ) +
-  ggtitle('Alpha diversity: provinces')
+  theme_bw() +
+  theme(legend.position = 'bottom', axis.title = element_blank(), axis.text = element_text(color='black')) +
+  scale_fill_discrete(guide = guide_legend(nrow = 1, title = NULL) ) 
+
+#saving the figure
+ggsave(filename = paste(sep='', figure_outfolder, 'diversity_alpha_anova_provinces.tiff'), plot = p, device = 'tiff', width = 1800, height = 1575, units = 'px')
+
 print(p)
 ```
 
@@ -732,10 +766,10 @@ levels = c('family', 'genus', 'species')
 ano = NULL
 
 for (l in levels){
-  df_sha = subset(alpha_long, level==l & type=='grana' & alpha == 'Shannon')
+  df_sha = subset(alpha_long, level==l & type=="GP area" & alpha == 'Shannon')
   a_sha = aov(value ~ province, data = df_sha)
   s_sha = summary(a_sha)
-  df_sim = subset(alpha_long, level==l & type=='grana' & alpha == 'Simpson')
+  df_sim = subset(alpha_long, level==l & type=="GP area" & alpha == 'Simpson')
   a_sim = aov(value ~ province, data = df_sim)
   s_sim = summary(a_sim)
   
@@ -837,7 +871,7 @@ I've introduced the concept of beta diversity at the beginning of this section. 
 level = 'species'
 
 #building the OTU table
-OTU_milk = build_OTU_table(raw_OTUs, level) 
+OTU_milk = build_OTU_table(raw_OTU_list = raw_OTUs, level = level) 
 
 #subset to non-control and remove bad sample
 sel = OTU_milk$meta$type != 'ctrl' 
@@ -863,7 +897,15 @@ shapes_prov = c(BS=17,  CN=18, CR=19, PC=0, TN=1, VI=2, VR=3)
 mds_data$labs = mds_data$Id_Lab
 mds_data[mds_data$type == 'grana', 'labs'] = NA
 
-ggplot(mds_data, aes(x = MDS1, y = MDS2, color = type, label=labs)) + geom_point() + geom_label() + theme(legend.position = 'none')
+p = ggplot(mds_data, aes(x = MDS1, y = MDS2, color = type, label=labs)) + 
+   geom_point(size=3) + geom_label() + theme_bw() + 
+  theme(legend.position = 'none', axis.text = element_text(color='black')) 
+  
+#saving the figure
+ggsave(filename = paste(sep='', figure_outfolder, 'diversity_beta_area.tiff'), plot = p, device = 'tiff', width = 1800, height = 1575, units = 'px')
+
+print(p)
+
 ```
 
 In this plot each milk sample from the grana consortium is represented with a red dot. The four non-grana milk are reported as blue labels. A few considerations:
@@ -873,9 +915,14 @@ In this plot each milk sample from the grana consortium is represented with a re
 
 ### By province
 ```{r beta by prov, echo=FALSE, include=TRUE, eval=TRUE}
-ggplot(subset(mds_data, province!= '-'), aes(x = MDS1, y = MDS2, color = province, shape=province)) +
-  scale_shape_manual(values = shapes_prov) +
-  geom_point()
+p = ggplot(subset(mds_data, province!= '-'), aes(x = MDS1, y = MDS2, color = province, shape=province)) +
+  scale_shape_manual(values = shapes_prov) + geom_point(size=3) + theme_bw() + 
+  theme(axis.text = element_text(color='black'))
+
+#saving the figure
+ggsave(filename = paste(sep='', figure_outfolder, 'diversity_beta_provinces.tiff'), plot = p, device = 'tiff', width = 1800, height = 1575, units = 'px')
+
+print(p)
 ```
 
 The data are exactly the same as in the previous plot, but here I highlight the geographical source. Unfortunately, not many patterns are visible.
