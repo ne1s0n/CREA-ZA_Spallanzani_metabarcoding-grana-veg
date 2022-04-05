@@ -20,6 +20,7 @@ library(DT)
 library(xfun)
 library(vegan)
 library(reshape2)
+library(tidyr)
 options(scipen=999)
 
 xfun::pkg_load2(c('base64enc', 'htmltools', 'mime'))
@@ -429,7 +430,6 @@ Removing control samples:
 levels = c('clade_phylum', 'family', 'genus', 'species')
 res = NULL
 for (level in levels){
-  
   #removing centroid with low reads, control samples
   myOTU = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 5)
   sel = myOTU$meta$type != 'ctrl'
@@ -438,6 +438,87 @@ for (level in levels){
   #not removing centroid with low reads, but removing control samples
   myOTU_nofilter = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 0)
   sel = myOTU_nofilter$meta$type != 'ctrl'
+  myOTU_nofilter = filter_OTU(myOTU_nofilter, sel)
+  
+  res = rbind(res, data.frame(
+    level = level,
+    samples = nrow(myOTU$OTU_noUN),
+    OTUs_all = ncol(myOTU_nofilter$OTU_noUN),
+    OTUs_filter5 = ncol(myOTU$OTU_noUN),
+    OTUs_filter5_dominant = sum(apply(X = myOTU$OTU_rel_noUN, MARGIN = 2, FUN = max, na.rm = TRUE) >= 0.01),
+    mean_unassigned = mean(myOTU$OTU_rel$UN)
+  ))
+}
+kable(res)
+```
+
+Removing control samples, GP only:
+```{r echo=FALSE, include=TRUE}
+levels = c('clade_phylum', 'family', 'genus', 'species')
+res = NULL
+for (level in levels){
+  #removing centroid with low reads, focus on grana
+  myOTU = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 5)
+  sel = myOTU$meta$type == 'grana'
+  myOTU = filter_OTU(myOTU, sel)
+  
+  #not removing centroid with low reads, but removing control samples
+  myOTU_nofilter = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 0)
+  sel = myOTU_nofilter$meta$type == 'grana'
+  myOTU_nofilter = filter_OTU(myOTU_nofilter, sel)
+  
+  res = rbind(res, data.frame(
+    level = level,
+    samples = nrow(myOTU$OTU_noUN),
+    OTUs_all = ncol(myOTU_nofilter$OTU_noUN),
+    OTUs_filter5 = ncol(myOTU$OTU_noUN),
+    OTUs_filter5_dominant = sum(apply(X = myOTU$OTU_rel_noUN, MARGIN = 2, FUN = max, na.rm = TRUE) >= 0.01),
+    mean_unassigned = mean(myOTU$OTU_rel$UN)
+  ))
+}
+kable(res)
+```
+
+Removing control samples, commercial only:
+```{r echo=FALSE, include=TRUE}
+levels = c('clade_phylum', 'family', 'genus', 'species')
+res = NULL
+for (level in levels){
+  #removing centroid with low reads, focus on non-grana
+  myOTU = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 5)
+  sel = myOTU$meta$type == 'non-grana'
+  myOTU = filter_OTU(myOTU, sel)
+  
+  #not removing centroid with low reads, but removing control samples
+  myOTU_nofilter = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 0)
+  sel = myOTU_nofilter$meta$type == 'non-grana'
+  myOTU_nofilter = filter_OTU(myOTU_nofilter, sel)
+  
+  res = rbind(res, data.frame(
+    level = level,
+    samples = nrow(myOTU$OTU_noUN),
+    OTUs_all = ncol(myOTU_nofilter$OTU_noUN),
+    OTUs_filter5 = ncol(myOTU$OTU_noUN),
+    OTUs_filter5_dominant = sum(apply(X = myOTU$OTU_rel_noUN, MARGIN = 2, FUN = max, na.rm = TRUE) >= 0.01),
+    mean_unassigned = mean(myOTU$OTU_rel$UN)
+  ))
+}
+kable(res)
+```
+
+Just control samples:
+```{r echo=FALSE, include=TRUE}
+levels = c('clade_phylum', 'family', 'genus', 'species')
+res = NULL
+for (level in levels){
+  #removing centroid with low reads, focus on control samples
+  myOTU = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 5)
+  sel = myOTU$meta$type == 'ctrl'
+  myOTU = filter_OTU(myOTU, sel)
+  
+  #not removing centroid with low reads, but removing control samples
+  myOTU_nofilter = build_OTU_table(raw_OTUs, level, min_sample_reads = 0, min_centroid_reads = 0)
+  sel = myOTU_nofilter$meta$type == 'ctrl'
   myOTU_nofilter = filter_OTU(myOTU_nofilter, sel)
   
   res = rbind(res, data.frame(
@@ -532,6 +613,42 @@ OTU incidence at family level:
 kable(OTU_milk$avg_rel_screen_noUN)
 ```
 
+### Compare GP vs. commercial
+```{r echo=FALSE, include=TRUE}
+level = 'family'
+
+#rebuilding the full thing
+OTU_milk = build_OTU_table(raw_OTUs, level) 
+
+#subsetting: all milk, no control
+sel = OTU_milk$meta$type != 'ctrl'
+OTU_milk_all = filter_OTU(OTU_milk, sel)
+
+#subsetting: gp only
+sel = OTU_milk_all$meta$type == 'grana'
+OTU_milk_GP = filter_OTU(OTU_milk_all, sel)
+
+#subsetting: non gp only
+sel = OTU_milk_all$meta$type == 'non-grana'
+OTU_milk_comm = filter_OTU(OTU_milk_all, sel)
+
+#creating a single table
+all_taxas = unique(c(
+  names(OTU_milk_all$avg_rel_screen_noUN),
+  names(OTU_milk_GP$avg_rel_screen_noUN),
+  names(OTU_milk_comm$avg_rel_screen_noUN)
+))
+taxas_distr = data.frame(
+  row.names   =  all_taxas,
+  all_samples = OTU_milk_all$avg_rel_screen_noUN[all_taxas],
+  GP = OTU_milk_GP$avg_rel_screen_noUN[all_taxas],
+  commercial = OTU_milk_comm$avg_rel_screen_noUN[all_taxas]
+) 
+
+kable(taxas_distr)
+```
+
+
 
 ## Genus
 ```{r, fig.height = 8, fig.align = "center", echo=FALSE, include=TRUE}
@@ -565,6 +682,42 @@ OTU incidence at genus level:
 ```{r echo=FALSE, include=TRUE}
 kable(OTU_milk$avg_rel_screen_noUN)
 ```
+
+### Compare GP vs. commercial
+```{r echo=FALSE, include=TRUE}
+level = 'genus'
+
+#rebuilding the full thing
+OTU_milk = build_OTU_table(raw_OTUs, level) 
+
+#subsetting: all milk, no control
+sel = OTU_milk$meta$type != 'ctrl'
+OTU_milk_all = filter_OTU(OTU_milk, sel)
+
+#subsetting: gp only
+sel = OTU_milk_all$meta$type == 'grana'
+OTU_milk_GP = filter_OTU(OTU_milk_all, sel)
+
+#subsetting: non gp only
+sel = OTU_milk_all$meta$type == 'non-grana'
+OTU_milk_comm = filter_OTU(OTU_milk_all, sel)
+
+#creating a single table
+all_taxas = unique(c(
+  names(OTU_milk_all$avg_rel_screen_noUN),
+  names(OTU_milk_GP$avg_rel_screen_noUN),
+  names(OTU_milk_comm$avg_rel_screen_noUN)
+))
+taxas_distr = data.frame(
+  row.names   =  all_taxas,
+  all_samples = OTU_milk_all$avg_rel_screen_noUN[all_taxas],
+  GP = OTU_milk_GP$avg_rel_screen_noUN[all_taxas],
+  commercial = OTU_milk_comm$avg_rel_screen_noUN[all_taxas]
+) 
+
+kable(taxas_distr)
+```
+
 
 ## Species
 ```{r, fig.height = 8, fig.align = "center", echo=FALSE, include=TRUE}
@@ -665,6 +818,21 @@ ggsave(filename = paste(sep='', figure_outfolder, 'diversity_alpha_box.tiff'), p
 
 print(p)
 ```
+
+```{r, echo=FALSE, include=TRUE}
+alpha_long_summary = ddply(alpha_long, .(level, type, alpha), function(x){
+  return(data.frame(value = mean(x$value)))
+})
+alpha_long_summary$test = paste(alpha_long_summary$alpha, '-', alpha_long_summary$type)
+alpha_long_summary$type = NULL
+alpha_long_summary$alpha = NULL
+
+alpha_long_summary = pivot_wider(alpha_long_summary, names_from = c('level'), values_from = 'value')
+alpha_long_summary = alpha_long_summary[order(alpha_long_summary$test),]
+
+kable(alpha_long_summary)
+```
+
 
 We can formally verify the consistency of this trend via a statistical test. Unfortunately we cannot use the classical Student's T test because the data are not normal (verified via Shapiro test for normality, data not reported). We must thus use the Wilcoxon rank sum test. The next table reports the p-values (alternative hypothesis: diversity are significantly different between grana and non-grana):
 
