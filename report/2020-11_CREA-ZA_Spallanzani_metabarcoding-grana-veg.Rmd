@@ -21,6 +21,7 @@ library(xfun)
 library(vegan)
 library(reshape2)
 library(tidyr)
+library(madbito)
 options(scipen=999)
 
 xfun::pkg_load2(c('base64enc', 'htmltools', 'mime'))
@@ -752,6 +753,43 @@ OTU incidence at species level:
 kable(OTU_milk$avg_rel_screen_noUN)
 ```
 
+### Compare GP vs. commercial
+```{r echo=FALSE, include=TRUE}
+level = 'species'
+
+#rebuilding the full thing
+OTU_milk = build_OTU_table(raw_OTUs, level) 
+
+#subsetting: all milk, no control
+sel = OTU_milk$meta$type != 'ctrl'
+OTU_milk_all = filter_OTU(OTU_milk, sel)
+
+#subsetting: gp only
+sel = OTU_milk_all$meta$type == 'grana'
+OTU_milk_GP = filter_OTU(OTU_milk_all, sel)
+
+#subsetting: non gp only
+sel = OTU_milk_all$meta$type == 'non-grana'
+OTU_milk_comm = filter_OTU(OTU_milk_all, sel)
+
+#creating a single table
+all_taxas = unique(c(
+  names(OTU_milk_all$avg_rel_screen_noUN),
+  names(OTU_milk_GP$avg_rel_screen_noUN),
+  names(OTU_milk_comm$avg_rel_screen_noUN)
+))
+taxas_distr = data.frame(
+  row.names   =  all_taxas,
+  all_samples = OTU_milk_all$avg_rel_screen_noUN[all_taxas],
+  GP = OTU_milk_GP$avg_rel_screen_noUN[all_taxas],
+  commercial = OTU_milk_comm$avg_rel_screen_noUN[all_taxas]
+) 
+
+kable(taxas_distr)
+```
+
+
+
 # Diversity analysis
 
 There are many ways to quantify complexity with the aim of comparing communities objectively. The two main categories of methods are known as alpha diversity and beta diversity [Whittaker, 1960]. Alpha diversity measures the diversity within a single sample and is based on the number and relative abundance of taxa at some rank (e.g. species, family). Beta diversity also uses the number of relative abundance of taxa at some rank, but measures variation between samples. In other words, an alpha diversity statistic describes a single sample and a beta diversity statistic describes how two samples compare.
@@ -875,7 +913,12 @@ kable(tmp)
 This trend is present also in the "grana" samples. In fact if we take a look at the density distribution (similar to a traditional histogram) of the Shannon alpha diversity we see: -->
 
 ```{r, echo=FALSE, include=TRUE}
-p = ggplot(subset(alpha_long, alpha == 'Shannon'), aes(x=value, fill=type)) + 
+#some renaming, for this plot
+tmp = alpha_long
+tmp$level = mapvalues(tmp$level, from = c("family", "genus", "species"), to=c("Family", "Genus", "Species"))
+tmp$type = mapvalues(tmp$type, from = c("outside GP area", "GP area"), to=c('Commercial milk', 'GP milk'))
+
+p = ggplot(subset(tmp, alpha == 'Shannon'), aes(x=value, fill=type)) + 
   geom_density(alpha=0.6) + facet_wrap(~level, nrow = 1) + 
   theme_bw() + scale_fill_manual(values=c("red", "blue")) + 
   theme(legend.position = 'bottom', 
@@ -1065,15 +1108,16 @@ shapes_prov = c(BS=17,  CN=18, CR=19, PC=0, TN=1, VI=2, VR=3)
 mds_data$labs = mds_data$Id_Lab
 mds_data[mds_data$type == 'grana', 'labs'] = NA
 
-p = ggplot(mds_data, aes(x = MDS1, y = MDS2, color = type, label=labs)) + 
+p_beta_type = ggplot(mds_data, aes(x = MDS1, y = MDS2, color = type, label=labs)) + 
    geom_point(size=3) + geom_label() + theme_bw() + 
   theme(legend.position = 'none', axis.text = element_text(color='black')) 
   
 #saving the figure
-ggsave(filename = paste(sep='', figure_outfolder, 'diversity_beta_area.tiff'), plot = p, device = 'tiff', width = 1800, height = 1575, units = 'px')
+ggsave(
+  filename = paste(sep='', figure_outfolder, 'diversity_beta_area.tiff'), 
+  plot = p_beta_type, device = 'tiff', width = 1800, height = 1575, units = 'px')
 
-print(p)
-
+print(p_beta_type)
 ```
 
 In this plot each milk sample from the grana consortium is represented with a red dot. The four non-grana milk are reported as blue labels. A few considerations:
@@ -1083,14 +1127,16 @@ In this plot each milk sample from the grana consortium is represented with a re
 
 ### By province
 ```{r beta by prov, echo=FALSE, include=TRUE, eval=TRUE}
-p = ggplot(subset(mds_data, province!= '-'), aes(x = MDS1, y = MDS2, color = province, shape=province)) +
+p_beta_prov = ggplot(subset(mds_data, province!= '-'), aes(x = MDS1, y = MDS2, color = province, shape=province)) +
   scale_shape_manual(values = shapes_prov) + geom_point(size=3) + theme_bw() + 
   theme(axis.text = element_text(color='black'))
 
 #saving the figure
-ggsave(filename = paste(sep='', figure_outfolder, 'diversity_beta_provinces.tiff'), plot = p, device = 'tiff', width = 1800, height = 1575, units = 'px')
+ggsave(
+  filename = paste(sep='', figure_outfolder, 'diversity_beta_provinces.tiff'), 
+  plot = p_beta_prov, device = 'tiff', width = 1800, height = 1575, units = 'px')
 
-print(p)
+print(p_beta_prov)
 ```
 
 The data are exactly the same as in the previous plot, but here I highlight the geographical source. Unfortunately, not many patterns are visible.
