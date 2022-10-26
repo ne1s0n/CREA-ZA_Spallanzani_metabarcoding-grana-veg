@@ -374,8 +374,9 @@ Here's the table, sorted by decreasing number of unassigned:
 level = 'domain'
 OTU_milk = build_OTU_table(raw_OTUs, level) 
 
-#subset to non-control
-sel = OTU_milk$meta$type != 'ctrl'
+
+#subset to grana only and remove bad sample
+sel = OTU_milk$meta$type == 'grana'
 OTU_milk = filter_OTU(OTU_milk, sel)
 
 #building a single table, showable
@@ -389,6 +390,15 @@ OTU_milk$merged = OTU_milk$merged[order(OTU_milk$merged$UN, decreasing = TRUE),]
 DT::datatable(OTU_milk$merged, rownames = FALSE, options = list(
   pageLength = 100))
 ```
+
+In summary
+
+```{r echo=FALSE, include=TRUE}
+writeLines(paste('Total reads:', sum(OTU_milk$merged$reads)))
+writeLines(paste('Average per sample:', mean(OTU_milk$merged$reads)))
+writeLines(paste('Range:', paste(collapse = ' - ', range(OTU_milk$merged$reads))))
+```
+
 
 A few notes:
 
