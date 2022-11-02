@@ -864,7 +864,9 @@ alpha_long$type = mapvalues(x=alpha_long$type, from=c("non-grana", "grana"), to=
 
 ## Alpha diversity - grana vs. non grana
 ```{r, fig.height = 4, fig.align = "center", echo=FALSE, include=TRUE}
-p = ggplot(alpha_long, aes(x=alpha, y=value, fill=type)) + geom_boxplot() +  facet_wrap(~level, nrow = 1) + 
+p = ggplot(alpha_long, aes(x=alpha, y=value, fill=type)) +
+#p = ggplot(subset(alpha_long, type == 'GP area'), aes(x=alpha, y=value, fill=type)) 
+ geom_boxplot() +  facet_wrap(~level, nrow = 1) + 
   theme_bw() + scale_fill_brewer(palette="Spectral") +
   theme(
     legend.position = 'bottom', 
@@ -940,28 +942,29 @@ tmp = alpha_long
 tmp$level = mapvalues(tmp$level, from = c("family", "genus", "species"), to=c("Family", "Genus", "Species"))
 tmp$type = mapvalues(tmp$type, from = c("outside GP area", "GP area"), to=c('Commercial milk', 'GP milk'))
 
-p = ggplot(subset(tmp, alpha == 'Shannon'), aes(x=value, fill=type)) + 
+p = ggplot(subset(tmp, type == 'GP milk'), aes(x=value, fill=alpha)) + 
   geom_density(alpha=0.6) + facet_wrap(~level, nrow = 1) + 
   theme_bw() + scale_fill_manual(values=c("red", "blue")) + 
   theme(legend.position = 'bottom', 
         legend.title = element_blank(), 
         axis.title = element_blank(), 
         axis.text = element_text(color='black')
-        ) 
+  ) 
 
 #saving the figure
-ggsave(filename = paste(sep='', figure_outfolder, 'diversity_alpha_shannon_density.tiff'), plot = p, device = 'tiff', width = 1800, height = 1575, units = 'px')
+ggsave(filename = paste(sep='', figure_outfolder, 'diversity_alpha_density.tiff'), plot = p, device = 'tiff', width = 1800, height = 1575, units = 'px')
 
 print(p)
 ```
 
+<!--
 It appears clear that:
 
 * all samples are clearly non-normal. In fact they seem to be bimodal, or at least the sum of two distributions, one with lower and one with higher average diversity
 * this bimodal trend is exacerbated for non-grana at species level, but with only four samples is hard to get any meaningful conclusion
 * same results with Simpson diversity, not reported
 
-<!-- The bimodal trend is actually intrinsic to the data. Even samples from the same dairy show it, e.g. for milk source "CN911": -->
+ The bimodal trend is actually intrinsic to the data. Even samples from the same dairy show it, e.g. for milk source "CN911": -->
 
 ```{r, echo=FALSE, include=FALSE}
 tmp = subset(alpha_long, grepl(alpha_long$sample, pattern = 'CN911') & alpha == 'Shannon' & level == 'species')
